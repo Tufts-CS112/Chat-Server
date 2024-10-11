@@ -4,8 +4,8 @@
 // Script:      main.c 
 // Usage:       ./a.out <port>
 //*************************************************************************************************
-// #include <stdio.h>
-// #include <stdlib.h>
+#include <stdio.h>
+#include <stdlib.h>
 // #include <string.h>
 // #include <unistd.h>
 // #include <sys/types.h>  // For socket        
@@ -15,13 +15,12 @@
 // #include <stdbool.h>
 
 #include "server.h"       
-// #include "cache_entry.h" 
 
 // ----GLOBAL VARIABLES----------------------------------------------------------------------------
 
 //----FUNCTIONS------------------------------------------------------------------------------------
 
-int main(int argc, char argv[]) {
+int main(int argc, char* argv[]) {
     
     // Declare variables
     int LISTENING_PORT; 
@@ -32,6 +31,9 @@ int main(int argc, char argv[]) {
         return -1;
     }
     LISTENING_PORT = atoi(argv[1]);
+
+    // Initialize server
+    initialize_server(LISTENING_PORT);
 }
 
 //-------------------------------------------------------------------------------------------------
