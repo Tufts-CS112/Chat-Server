@@ -14,7 +14,8 @@
 // #include <netdb.h>      // Provides hostent struct
 // #include <stdbool.h>
 
-#include "server.h"       
+#include "client.h"
+#include "../shared/message.h"       
 
 // ----GLOBAL VARIABLES----------------------------------------------------------------------------
 
@@ -23,17 +24,18 @@
 int main(int argc, char* argv[]) {
     
     // Declare variables
-    int LISTENING_PORT; 
+    // int LISTENING_PORT; 
+    printf("Testing\n");
 
-    // Get port number from argv
-    if(argc != 2) {
-        printf("Usage: %s <port>\n", argv[0]);
-        return -1;
-    }
-    LISTENING_PORT = atoi(argv[1]);
+    // // Get port number from argv
+    // if(argc != 2) {
+    //     printf("Usage: %s <port>\n", argv[0]);
+    //     return -1;
+    // }
+    // LISTENING_PORT = atoi(argv[1]);
 
-    // Initialize server
-    initialize_server(LISTENING_PORT);
+    // // Initialize server
+    // initialize_server(LISTENING_PORT);
 }
 
 //-------------------------------------------------------------------------------------------------
