@@ -5,9 +5,11 @@
 // Usage:       Implementation file for server
 //*************************************************************************************************
 #include "server.h"
-#include <string.h>
+
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
 #include <sys/types.h>  // For socket        
 #include <sys/socket.h> 
 #include <netinet/in.h> // Provides sockaddr_in struct
@@ -45,6 +47,14 @@ int initialize_server(int PORT) {
     server_addr.sin_family = AF_INET;             // Set address family to IPv4
     server_addr.sin_addr.s_addr = INADDR_ANY;     // Set IP address to all IP addresses of machine
     server_addr.sin_port = htons(PORT);           // Set port number
+
+    // Set socket options to allow reuse of the address (fixes "address already in use" bug)
+    int opt = 1;
+    if (setsockopt(listening_socket, SOL_SOCKET, SO_REUSEADDR, &opt, sizeof(opt)) < 0) {
+        perror("Error setting socket options");
+        close(listening_socket);
+        return -1;
+    }   
 
     // Bind socket to IP address and port
     if(bind(listening_socket, (struct sockaddr *) &server_addr, sizeof(server_addr)) < 0 ){
@@ -87,12 +97,12 @@ int initialize_server(int PORT) {
             FD_SET(client_socket, &master_set);
             fdmax = max(client_socket, fdmax);
         } else {
-            for(int socket = 0; socket <= fdmax; socket++) {
-                if(FD_ISSET(socket, &temp_set)) {
-                    printf("Client is sending message\n");
-                    // int bytes_received = recv(socket, buffer, (size_t) BUFFER_MAX_SIZE-1, 0);
-                }
-            }
+            // for(int socket = 0; socket <= fdmax; socket++) {
+            //     if(FD_ISSET(socket, &temp_set)) {
+            //         printf("Client is sending message\n");
+            //         // int bytes_received = recv(socket, buffer, (size_t) BUFFER_MAX_SIZE-1, 0);
+            //     }
+            // }
         }
     }
 

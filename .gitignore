@@ -1,5 +1,6 @@
 *.o
 *.gz
 *.out
+.vscode/*
 tests/*
 Makefile

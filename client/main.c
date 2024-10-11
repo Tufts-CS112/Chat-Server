@@ -24,18 +24,17 @@
 int main(int argc, char* argv[]) {
     
     // Declare variables
-    // int LISTENING_PORT; 
-    printf("Testing\n");
+    int SERVER_PORT; \
 
-    // // Get port number from argv
-    // if(argc != 2) {
-    //     printf("Usage: %s <port>\n", argv[0]);
-    //     return -1;
-    // }
-    // LISTENING_PORT = atoi(argv[1]);
+    // Get port number from argv
+    if(argc != 2) {
+        printf("Usage: %s <port>\n", argv[0]);
+        return -1;
+    }
+    SERVER_PORT = atoi(argv[1]);
 
-    // // Initialize server
-    // initialize_server(LISTENING_PORT);
+    // Initialize server
+    connect_to_server(SERVER_PORT);
 }
 
 //-------------------------------------------------------------------------------------------------
