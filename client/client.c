@@ -5,6 +5,7 @@
 // Usage:       Implementation file for client
 //*************************************************************************************************
 #include "client.h"
+#include "message.h"
 #include <string.h>
 #include <sys/socket.h>
 #include <netinet/in.h> // Provides sockaddr_in struct
@@ -19,8 +20,8 @@
 
 
 //----FUNCTIONS------------------------------------------------------------------------------------
-
-void connect_to_server(int SERVER_PORT){
+// Given server port, connect to server and return client socket
+int connect_to_server(int SERVER_PORT){
     int client_socket;
     struct sockaddr_in server_addr;
 
@@ -40,10 +41,19 @@ void connect_to_server(int SERVER_PORT){
     }
 
     printf("Connected to the server\n");
-
-    close(client_socket);
-
+    return client_socket;
 }
+
+// Given client socket, disconnect from server
+void disconnect_from_server(int client_socket){
+    close(client_socket);
+}
+
+// Write buffer to server
+void write_to_server(int client_socket, char* buffer) {
+    write(client_socket, buffer, sizeof(struct message));
+}
+
 
 
 

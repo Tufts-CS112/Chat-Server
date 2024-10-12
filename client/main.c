@@ -6,7 +6,7 @@
 //*************************************************************************************************
 #include <stdio.h>
 #include <stdlib.h>
-// #include <string.h>
+#include <string.h>
 // #include <unistd.h>
 // #include <sys/types.h>  // For socket        
 // #include <sys/socket.h> 
@@ -24,7 +24,7 @@
 int main(int argc, char* argv[]) {
     
     // Declare variables
-    int SERVER_PORT; \
+    int SERVER_PORT; 
 
     // Get port number from argv
     if(argc != 2) {
@@ -34,7 +34,23 @@ int main(int argc, char* argv[]) {
     SERVER_PORT = atoi(argv[1]);
 
     // Initialize server
-    connect_to_server(SERVER_PORT);
+    int client_socket = connect_to_server(SERVER_PORT);
+
+    // Get hello message
+    message hello_message = get_HELLO_message("Client1");
+    // char* buffer_hello_message = message_to_buffer(hello_message);
+    print_message(hello_message);
+
+    // Write message to server
+    write_to_server(client_socket, (char*) &hello_message);
+
+    // Free buffer
+    // free(buffer_hello_message);
+
+    // Disconnect from server
+    disconnect_from_server(client_socket);
+
+    return 0;
 }
 
 //-------------------------------------------------------------------------------------------------

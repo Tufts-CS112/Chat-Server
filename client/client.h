@@ -12,7 +12,9 @@
 // ----STRUCT--------------------------------------------------------------------------------------
 
 //----FUNCTIONS------------------------------------------------------------------------------------
-void connect_to_server(int LISTENING_PORT);
+int connect_to_server(int LISTENING_PORT);
+void disconnect_from_server(int client_socket);
+void write_to_server(int client_socket, char* message);
 
 #endif
 //-------------------------------------------------------------------------------------------------

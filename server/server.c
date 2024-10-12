@@ -5,6 +5,7 @@
 // Usage:       Implementation file for server
 //*************************************************************************************************
 #include "server.h"
+#include "../shared/message.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -20,7 +21,7 @@
 
 
 // ----GLOBAL VARIABLES----------------------------------------------------------------------------
-#define BUFFER_MAX_SIZE 512       // Confirm size
+// #define BUFFER_MAX_SIZE 512       // Confirm size
 #define MAX_CLIENT_CONNECTIONS 10
 
 //----FUNCTIONS------------------------------------------------------------------------------------
@@ -33,7 +34,7 @@ int initialize_server(int PORT) {
     int client_socket, listening_socket;
     struct sockaddr_in client_addr, server_addr;
     socklen_t client_addr_size = sizeof(client_addr);
-    char* buffer = malloc((size_t) BUFFER_MAX_SIZE);
+    char* buffer = malloc(sizeof(message));
 
     // Create listening socket
     listening_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -97,12 +98,12 @@ int initialize_server(int PORT) {
             FD_SET(client_socket, &master_set);
             fdmax = max(client_socket, fdmax);
         } else {
-            // for(int socket = 0; socket <= fdmax; socket++) {
-            //     if(FD_ISSET(socket, &temp_set)) {
-            //         printf("Client is sending message\n");
-            //         // int bytes_received = recv(socket, buffer, (size_t) BUFFER_MAX_SIZE-1, 0);
-            //     }
-            // }
+            for(int socket = 0; socket <= fdmax; socket++) {
+                if(FD_ISSET(socket, &temp_set)) {
+                    printf("Client is sending message\n");
+                    int bytes_received = recv(socket, buffer, sizeof(message)-1, 0);
+                }
+            }
         }
     }
 
