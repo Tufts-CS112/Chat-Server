@@ -7,6 +7,8 @@
 //*************************************************************************************************
 #include "connection_list.h"
 #include <netinet/in.h> // Provides sockaddr_in struct
+#include <stdbool.h>
+#include <stdio.h>
 
 // ----GLOBAL VARIABLES----------------------------------------------------------------------------
 
@@ -15,9 +17,9 @@
 
 // Given ptr to head pointer, create new connection and add to connection list, modify
 // header as needed
-void add_connection(connection_list** connection_list_head, struct sockaddr_in *client_addr) {
+void add_connection(connection_list** connection_list_head, int socket_fd) {
     // Create connection
-    connection* new_connection = get_connection(client_addr);
+    connection* new_connection = create_connection(socket_fd);
     // Create new node
     connection_list* new_connection_list = malloc(sizeof(connection_list));
     new_connection_list->connection = new_connection;
@@ -34,6 +36,37 @@ void add_connection(connection_list** connection_list_head, struct sockaddr_in *
         connection_list_ref->next = new_connection_list;
     }
 }
+
+// Given pointer to head of connection list and socket_fd, return pointer to connection
+// associated with socket_fd. If none exists, return NULL
+connection* get_connection(connection_list** connection_list_head, int socket_fd) {
+    connection* connection = NULL;
+    connection_list* connection_list_ref = *connection_list_head;
+    while(connection_list_ref != NULL) {
+        if(connection_list_ref->connection->client_socket_fd == socket_fd) {
+            connection = connection_list_ref->connection;
+            break;
+        }
+        connection_list_ref = connection_list_ref->next;
+    }
+    return connection;
+}
+
+// Given pointer to head of connection list and socket_fd, return true
+// if connection is already present in list, else false
+bool connection_present(connection_list** connection_list_head, int socket_fd) {
+    connection* connection = get_connection(connection_list_head, socket_fd);
+    return connection != NULL;
+}
+
+// Given pointer to head of connection list, socket_fd, and message, add message to connection 
+// associated with socket_fd
+void add_connection_message(connection_list** connection_list_ref, int socket_fd, struct message* message, int bytes_received) {
+    connection* connection = get_connection(connection_list_ref, socket_fd);
+    connection->data_stored = bytes_received;
+    connection->message = message;
+}
+
 
 // Given head of connection list, free list
 void free_client_list(connection_list* connection_list_head) {
@@ -52,6 +85,23 @@ void free_client_list(connection_list* connection_list_head) {
         }
     }
 }
+
+
+void print_connection_list(connection_list** connection_list_head_ref) {
+    connection_list* connection_list_ref = *connection_list_head_ref;
+    while(connection_list_ref != NULL){
+        printf("----------------------------------------\n");
+        printf("CONNECTION\n");
+        printf("client_socket_fd: %d\n", connection_list_ref->connection->client_socket_fd);
+        printf("data stored: %d\n", connection_list_ref->connection->data_stored);
+        printf("Message: \n");
+        print_message(connection_list_ref->connection->message);
+        printf("----------------------------------------\n\n");
+        connection_list_ref = connection_list_ref->next; 
+    }
+}
+
+
 
 
 //-------------------------------------------------------------------------------------------------

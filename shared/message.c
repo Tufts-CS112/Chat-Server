@@ -14,14 +14,15 @@
 
 //----FUNCTIONS------------------------------------------------------------------------------------
 // Print contents of message for debugging
-void print_message(message message) {
-    printf("----------------------------------------\n");
-    printf("Type: %d\n", message.type);
-    printf("Source: %s\n", message.source);
-    printf("Destination: %s\n", message.destination);
-    printf("Length: %d\n", message.length);
-    printf("Message ID: %d\n", message.message_ID);
-    printf("Data: %s\n", message.data);
+void print_message(message* message) {
+    printf("  ----------------------------------------\n");
+    printf("  MESSAGE\n");
+    printf("  Type: %d\n", message->type);
+    printf("  Source: %s\n", message->source);
+    printf("  Destination: %s\n", message->destination);
+    printf("  Length: %d\n", message->length);
+    printf("  Message ID: %d\n", message->message_ID);
+    printf("  Data: %s\n", message->data);
     printf("----------------------------------------\n");
 }
 
@@ -34,14 +35,17 @@ char* message_to_buffer(message message){
 
 
 // Return HELLO message (as specified by specs)
-message get_HELLO_message(const char* client_id) {
+message get_HELLO_message(char* client_id) {
     if(strlen(client_id) > SOURCE_LENGTH) {
         printf("Client ID longer than maximum string length of %d characters\n", (int) SOURCE_LENGTH);
     } 
     message message;
+    memset(&message, 0, sizeof(message));
     message.type = 1;
-    strcpy(message.source, client_id);
-    strcpy(message.destination, "Server");
+    strncpy(message.source, client_id, sizeof(message.source)-1);
+    message.source[sizeof(message.source)-1] = '\0';
+    strncpy(message.destination, "Server", sizeof(message.destination)-1);
+    message.destination[sizeof(message.destination)-1] = '\0';
     message.length = 0;
     message.message_ID = 0;
     return message;     
@@ -49,8 +53,9 @@ message get_HELLO_message(const char* client_id) {
 
 // Return HELLO_ACK message (as specified by specs)
 // message get_HELLO_ACK_message(const char* client_id) {
-//     message message;
-//     message.type = 2;
+    // message message;
+    // memset(&message, 0, sizeof(message));
+    //     message.type = 2;
 //     strcpy(message.source, "Server");
 //     strcpy(message.destination, client_id);
 //     message.length = 0;
@@ -60,7 +65,8 @@ message get_HELLO_message(const char* client_id) {
 
 // // Return LIST_REQUEST message (as specified by specs)
 // message get_LIST_REQUEST_message(const char* client_id) {
-//     message message;
+    // message message;
+    // memset(&message, 0, sizeof(message));
 //     message.type = 3;
 //     strcpy(message.source, client_id);
 //     strcpy(message.destination, "Server");
@@ -71,7 +77,8 @@ message get_HELLO_message(const char* client_id) {
 
 // Return LIST_REQUEST message (as specified by specs)
 // message get_CLIENT_LIST_message(const char* client_id) {
-//     message message;
+    // message message;
+    // memset(&message, 0, sizeof(message));
 //     message.type = 4;
 //     strcpy(message.source, "Server");
 //     strcpy(message.destination, client_id);

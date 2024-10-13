@@ -22,12 +22,40 @@
 
 // ----GLOBAL VARIABLES----------------------------------------------------------------------------
 #define MAX_CLIENT_CONNECTIONS 10
+// #define MAX_DATA_SIZE 400
 
 //----FUNCTIONS------------------------------------------------------------------------------------
 // Max function (since max isn't in stdlib)
 int max(int a, int b) {
     return (a > b) ? a : b;
 }
+
+// Receive data from client connection. If new client, add
+// to client list. Parse data into messages and store appropriately
+void receive_data(int socket, connection_list** connection_list_head_ref) {
+
+    // If not already present, add connection to connection list
+    if(!connection_present(connection_list_head_ref, socket)) {
+        printf("Adding new connection to connection list\n");
+        add_connection(connection_list_head_ref, socket);
+    }
+
+    // Receive client data
+    char* buffer = malloc(sizeof(message));
+    int bytes_received = recv(socket, buffer, sizeof(message), 0);
+    printf("Bytes received: %d\n", bytes_received);
+
+    // Store client data
+    connection* connection = get_connection(connection_list_head_ref, socket);
+    if(connection->data_stored == 0) {
+        message* message = malloc(sizeof(message));
+        memcpy(message, buffer, bytes_received);
+        add_connection_message(connection_list_head_ref, socket, message, bytes_received);
+    }
+    print_connection_list(connection_list_head_ref);
+    free(buffer);
+}
+
 
 int initialize_server(int PORT) {
     int client_socket, listening_socket;
@@ -95,24 +123,27 @@ int initialize_server(int PORT) {
             client_socket = accept(listening_socket, (struct sockaddr *) &client_addr, &client_addr_size);
             printf("New client connection. Server socket: %d, IP: %s, Port: %d\n", 
                     client_socket, inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
-            add_connection(&connection_list_head, &client_addr);
 
             // Add new client to master set and update max file descriptor
             FD_SET(client_socket, &master_set);
             fdmax = max(client_socket, fdmax);
         } else {
+            // If client is ready, receive data. Store and respond accordingly
             for(int socket = 0; socket <= fdmax; socket++) {
-                // if(FD_ISSET(socket, &temp_set)) {
-                //     printf("Client is sending message\n");
-                //     int bytes_received = recv(socket, buffer, sizeof(message)-1, 0);
-                // }
+                if(FD_ISSET(socket, &temp_set)) {
+                    printf("Client is sending message:\n");
+                    // Check whether client has already been added. If not, add
+                    receive_data(socket, &connection_list_head);
+                    close(socket);
+                }
             }
         }
     }
 
-    // Free data 
-    free(buffer);
-    free_client_list(connection_list_head);
+    // Free data, close sockets
+    // free(message);
+    //close(socket)
+    // free_client_list(connection_list_head);
     
     // Close sockets
     for(int socket = 0; socket <= fdmax; socket++) {

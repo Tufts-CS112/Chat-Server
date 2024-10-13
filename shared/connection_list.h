@@ -10,6 +10,7 @@
 
 #include "connection.h"
 #include <stdlib.h>
+#include <stdbool.h>
 
 // ----GLOBAL VARIABLES----------------------------------------------------------------------------
 
@@ -21,8 +22,12 @@ typedef struct connection_list{
 } connection_list;
 
 //----FUNCTIONS------------------------------------------------------------------------------------
-void add_connection(connection_list** connection_list_ref, struct sockaddr_in *client_addr);
+void add_connection(connection_list** connection_list_ref, int socket_fd);
+void add_connection_message(connection_list** connection_list_ref, int socket_fd, message* message, int bytes_received);
+connection* get_connection(connection_list** connection_list_head, int socket_fd);
+bool connection_present(connection_list** connection_list_head, int socket_fd);
 void free_client_list(connection_list* connection_list_head);
+void print_connection_list(connection_list** connection_list_head);
 
 
 #endif

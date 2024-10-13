@@ -16,11 +16,10 @@
 
 //----FUNCTIONS------------------------------------------------------------------------------------
 // Return connection object
-connection* get_connection(struct sockaddr_in *client_addr) {
+connection* create_connection(int client_socket_fd) {
     connection* connection = malloc(sizeof(connection));
-    char* client_IP = inet_ntoa(client_addr->sin_addr);
-    int client_port = ntohs(client_addr->sin_port);
-    snprintf(connection->ConnectionID, sizeof(connection->ConnectionID), "%s:%d", client_IP, client_port);
+    connection->client_socket_fd = client_socket_fd;
+    connection->data_stored = 0;
     return connection;
 }
 //-------------------------------------------------------------------------------------------------

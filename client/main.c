@@ -39,9 +39,10 @@ int main(int argc, char* argv[]) {
     // Get hello message
     message hello_message = get_HELLO_message("Client1");
     // char* buffer_hello_message = message_to_buffer(hello_message);
-    print_message(hello_message);
+    print_message(&hello_message);
 
     // Write message to server
+    printf("Writing message to server...\n");
     write_to_server(client_socket, (char*) &hello_message);
 
     // Free buffer
