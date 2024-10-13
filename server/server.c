@@ -6,6 +6,7 @@
 //*************************************************************************************************
 #include "server.h"
 #include "../shared/message.h"
+#include "../shared/connection_list.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -17,11 +18,9 @@
 #include <arpa/inet.h>
 #include <netdb.h>      // Provides hostent struct
 #include <sys/select.h> // Provides select() functionality
-#include <netinet/in.h> // Provides sockaddr_in struct
 
 
 // ----GLOBAL VARIABLES----------------------------------------------------------------------------
-// #define BUFFER_MAX_SIZE 512       // Confirm size
 #define MAX_CLIENT_CONNECTIONS 10
 
 //----FUNCTIONS------------------------------------------------------------------------------------
@@ -79,6 +78,9 @@ int initialize_server(int PORT) {
     FD_SET(listening_socket, &master_set);
     int fdmax = listening_socket;
 
+    // Create list of connections to maintain client connections
+    struct connection_list* connection_list_head = NULL; 
+
     while(1){
         // Copy master set to temp set (to preserve master
         // set while select() modifies copy)
@@ -93,22 +95,26 @@ int initialize_server(int PORT) {
             client_socket = accept(listening_socket, (struct sockaddr *) &client_addr, &client_addr_size);
             printf("New client connection. Server socket: %d, IP: %s, Port: %d\n", 
                     client_socket, inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+            add_connection(&connection_list_head, &client_addr);
 
             // Add new client to master set and update max file descriptor
             FD_SET(client_socket, &master_set);
             fdmax = max(client_socket, fdmax);
         } else {
             for(int socket = 0; socket <= fdmax; socket++) {
-                if(FD_ISSET(socket, &temp_set)) {
-                    printf("Client is sending message\n");
-                    int bytes_received = recv(socket, buffer, sizeof(message)-1, 0);
-                }
+                // if(FD_ISSET(socket, &temp_set)) {
+                //     printf("Client is sending message\n");
+                //     int bytes_received = recv(socket, buffer, sizeof(message)-1, 0);
+                // }
             }
         }
     }
 
-    // Free data and close sockets
+    // Free data 
     free(buffer);
+    free_client_list(connection_list_head);
+    
+    // Close sockets
     for(int socket = 0; socket <= fdmax; socket++) {
         close(socket);
     }
