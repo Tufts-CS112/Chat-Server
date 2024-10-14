@@ -16,7 +16,9 @@
 
 #include "client.h"
 #include "../shared/message.h"       
-
+#include <sys/types.h>
+#include <sys/uio.h>
+#include <unistd.h>
 // ----GLOBAL VARIABLES----------------------------------------------------------------------------
 
 //----FUNCTIONS------------------------------------------------------------------------------------
@@ -36,17 +38,26 @@ int main(int argc, char* argv[]) {
     // Initialize server
     int client_socket = connect_to_server(SERVER_PORT);
 
-    // Get hello message
-    message hello_message = get_HELLO_message("Client1");
-    // char* buffer_hello_message = message_to_buffer(hello_message);
-    print_message(&hello_message);
-
-    // Write message to server
+    // Send hello message
+    message* hello_message = get_HELLO_message("Client1");
+    print_message(hello_message);
     printf("Writing message to server...\n");
-    write_to_server(client_socket, (char*) &hello_message);
+    convert_message_to_network_byte_order(hello_message);
+    write_to_server(client_socket, (char*) hello_message);
+    free(hello_message);
+
+    // Receive response from server
+    printf("Receiving message from server...\n");
+    message* message_response = malloc(sizeof(message));
+    int bytes_received = read(client_socket, message_response, sizeof(message));
+    printf("Received %d bytes from server\n", bytes_received);
+    convert_message_to_host_byte_order(message_response);
+    print_message(message_response);
+
+
 
     // Free buffer
-    // free(buffer_hello_message);
+    free(message_response);
 
     // Disconnect from server
     disconnect_from_server(client_socket);

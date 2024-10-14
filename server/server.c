@@ -22,12 +22,21 @@
 
 // ----GLOBAL VARIABLES----------------------------------------------------------------------------
 #define MAX_CLIENT_CONNECTIONS 10
-// #define MAX_DATA_SIZE 400
+#define HEADER_SIZE 50
 
 //----FUNCTIONS------------------------------------------------------------------------------------
 // Max function (since max isn't in stdlib)
 int max(int a, int b) {
     return (a > b) ? a : b;
+}
+
+void send_message(int socket_fd, message* message) {
+    // Send message
+    write_to_client(socket_fd, (char*) message);
+}
+
+void write_to_client(int client_socket, char* buffer) {
+    write(client_socket, buffer, sizeof(message));
 }
 
 // Receive data from client connection. If new client, add
@@ -48,12 +57,33 @@ void receive_data(int socket, connection_list** connection_list_head_ref) {
     // Store client data
     connection* connection = get_connection(connection_list_head_ref, socket);
     if(connection->data_stored == 0) {
-        message* message = malloc(sizeof(message));
+        message* message = malloc(sizeof(struct message));
         memcpy(message, buffer, bytes_received);
+        printf("Message before network-to-host conversion: \n");
+        print_message(message);
+        convert_message_to_host_byte_order(message);
+        printf("Message after network-to-host conversion: \n");
+        print_message(message);
         add_connection_message(connection_list_head_ref, socket, message, bytes_received);
     }
     print_connection_list(connection_list_head_ref);
     free(buffer);
+}
+
+void server_response(int socket_fd, connection_list** connection_list_head_ref) {
+    connection* connection = get_connection(connection_list_head_ref, socket_fd);
+    if(connection->data_stored > HEADER_SIZE) {
+        int message_type = connection->message->type;
+        // HELLO message type
+        if(message_type == 1) {
+            // Send back HELLO_ACK message
+            printf("Sending HELLO_ACK\n");
+            message* message_HELLO_ACK = get_HELLO_ACK_message(connection->message->source);
+            convert_message_to_network_byte_order(message_HELLO_ACK);
+            send_message(socket_fd, message_HELLO_ACK);
+            // Send CLIENT_LIST message
+        }
+    }
 }
 
 
@@ -131,9 +161,13 @@ int initialize_server(int PORT) {
             // If client is ready, receive data. Store and respond accordingly
             for(int socket = 0; socket <= fdmax; socket++) {
                 if(FD_ISSET(socket, &temp_set)) {
+                    // Store data appropriately and add client to
+                    // client connection list if not already added
                     printf("Client is sending message:\n");
-                    // Check whether client has already been added. If not, add
                     receive_data(socket, &connection_list_head);
+
+                    // Send response according to client request
+                    server_response(socket, &connection_list_head);
                     close(socket);
                 }
             }
