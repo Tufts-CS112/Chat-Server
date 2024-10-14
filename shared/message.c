@@ -24,8 +24,12 @@ void print_message(message* message) {
     printf("  Destination: %s\n", message->destination);
     printf("  Length: %d\n", message->length);
     printf("  Message ID: %d\n", message->message_ID);
-    printf("  Data: %s\n", message->data);
-    printf("----------------------------------------\n");
+    printf("  Data: ");
+    for (int i = 0; i < message->length; i++) {
+        printf("%c", message->data[i]);
+    }
+    printf("\n");
+    printf("  ----------------------------------------\n");
 }
 
 // Copy contents of message to buffer for writing to server

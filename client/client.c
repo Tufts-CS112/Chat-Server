@@ -24,6 +24,8 @@
 int connect_to_server(int SERVER_PORT){
     int client_socket;
     struct sockaddr_in server_addr;
+    struct sockaddr_in local_addr;
+    socklen_t addr_len = sizeof(local_addr);
 
     // Create socket for server connection
     client_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -39,6 +41,16 @@ int connect_to_server(int SERVER_PORT){
         perror("Unable to connect to server");
         close(client_socket);
     }
+
+    // Get the local address and port of the socket (source port)
+    if (getsockname(client_socket, (struct sockaddr*)&local_addr, &addr_len) == -1) {
+        perror("getsockname() failed");
+        close(client_socket);
+        exit(EXIT_FAILURE);
+    }
+
+    // Print the local port (source port)
+    printf("Source port: %d\n", ntohs(local_addr.sin_port));
 
     printf("Connected to the server\n");
     return client_socket;

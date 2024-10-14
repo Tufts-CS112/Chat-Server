@@ -60,7 +60,7 @@ void receive_data(int socket, connection_list** connection_list_head_ref) {
         message* message = malloc(sizeof(struct message));
         memcpy(message, buffer, bytes_received);
         convert_message_to_host_byte_order(message);
-        printf("Received message: \n");
+        printf("Message received: \n");
         print_message(message);
         add_connection_message(connection_list_head_ref, socket, message, bytes_received);
     }
@@ -156,7 +156,7 @@ int initialize_server(int PORT) {
         // connection. Accept new client and add to master set
         if(FD_ISSET(listening_socket, &temp_set)){
             client_socket = accept(listening_socket, (struct sockaddr *) &client_addr, &client_addr_size);
-            printf("New client connection. Server socket: %d, IP: %s, Port: %d\n", 
+            printf("\nNew client connection. Server socket: %d, IP: %s, Port: %d\n", 
                     client_socket, inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
 
             // Add new client to master set and update max file descriptor

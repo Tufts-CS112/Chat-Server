@@ -83,6 +83,7 @@ message* get_CLIENT_LIST_message(char* client_id, connection_list** connection_l
         offset++;
         connection_list_ref = connection_list_ref->next;
     }
+    message_CLIENT_LIST->length = offset;
 
     return message_CLIENT_LIST;
 }
@@ -117,7 +118,7 @@ void print_connection_list(connection_list** connection_list_head_ref) {
         printf("data stored: %d\n", connection_list_ref->connection->data_stored);
         printf("Message: \n");
         print_message(connection_list_ref->connection->message);
-        printf("----------------------------------------\n\n");
+        printf("----------------------------------------\n");
         connection_list_ref = connection_list_ref->next; 
     }
 }
