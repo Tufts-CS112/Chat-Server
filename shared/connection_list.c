@@ -9,6 +9,7 @@
 #include <netinet/in.h> // Provides sockaddr_in struct
 #include <stdbool.h>
 #include <stdio.h>
+#include <string.h>
 
 // ----GLOBAL VARIABLES----------------------------------------------------------------------------
 
@@ -37,6 +38,14 @@ void add_connection(connection_list** connection_list_head, int socket_fd) {
     }
 }
 
+// Given pointer to head of connection list, socket_fd, and message, add message to connection 
+// associated with socket_fd
+void add_connection_message(connection_list** connection_list_ref, int socket_fd, struct message* message, int bytes_received) {
+    connection* connection = get_connection(connection_list_ref, socket_fd);
+    connection->data_stored = bytes_received;
+    connection->message = message;
+}
+
 // Given pointer to head of connection list and socket_fd, return pointer to connection
 // associated with socket_fd. If none exists, return NULL
 connection* get_connection(connection_list** connection_list_head, int socket_fd) {
@@ -59,13 +68,25 @@ bool connection_present(connection_list** connection_list_head, int socket_fd) {
     return connection != NULL;
 }
 
-// Given pointer to head of connection list, socket_fd, and message, add message to connection 
-// associated with socket_fd
-void add_connection_message(connection_list** connection_list_ref, int socket_fd, struct message* message, int bytes_received) {
-    connection* connection = get_connection(connection_list_ref, socket_fd);
-    connection->data_stored = bytes_received;
-    connection->message = message;
+// Given pointer to head of connection list, return list of 
+// NULL terminated client IDs
+message* get_CLIENT_LIST_message(char* client_id, connection_list** connection_list_head_ref){
+    message* message_CLIENT_LIST = get_CLIENT_LIST_empty_message(client_id);
+    // Get client ID's and add them to the Data field
+    connection_list* connection_list_ref = *connection_list_head_ref;
+    int offset = 0;
+    while(connection_list_ref != NULL) {
+        char* connection_client_id = connection_list_ref->connection->message->source;
+        strncpy(message_CLIENT_LIST->data + offset, connection_client_id, strlen(connection_client_id));
+        offset += strlen(connection_client_id);
+        message_CLIENT_LIST->data[offset] = '\0';
+        offset++;
+        connection_list_ref = connection_list_ref->next;
+    }
+
+    return message_CLIENT_LIST;
 }
+
 
 
 // Given head of connection list, free list

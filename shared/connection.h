@@ -21,7 +21,7 @@
 typedef struct connection{
     int client_socket_fd;
     int data_stored;
-    message* message;
+    struct message* message;
 } connection;
 
 //----FUNCTIONS------------------------------------------------------------------------------------

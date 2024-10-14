@@ -59,10 +59,8 @@ void receive_data(int socket, connection_list** connection_list_head_ref) {
     if(connection->data_stored == 0) {
         message* message = malloc(sizeof(struct message));
         memcpy(message, buffer, bytes_received);
-        printf("Message before network-to-host conversion: \n");
-        print_message(message);
         convert_message_to_host_byte_order(message);
-        printf("Message after network-to-host conversion: \n");
+        printf("Received message: \n");
         print_message(message);
         add_connection_message(connection_list_head_ref, socket, message, bytes_received);
     }
@@ -81,7 +79,14 @@ void server_response(int socket_fd, connection_list** connection_list_head_ref) 
             message* message_HELLO_ACK = get_HELLO_ACK_message(connection->message->source);
             convert_message_to_network_byte_order(message_HELLO_ACK);
             send_message(socket_fd, message_HELLO_ACK);
+            free(message_HELLO_ACK);
+
             // Send CLIENT_LIST message
+            printf("Sending CLIENT_LIST\n");
+            message* message_CLIENT_LIST = get_CLIENT_LIST_message(connection->message->source, connection_list_head_ref);
+            convert_message_to_network_byte_order(message_CLIENT_LIST);
+            send_message(socket_fd, message_CLIENT_LIST);
+            free(message_CLIENT_LIST);
         }
     }
 }
@@ -168,7 +173,7 @@ int initialize_server(int PORT) {
 
                     // Send response according to client request
                     server_response(socket, &connection_list_head);
-                    close(socket);
+                    // close(socket);
                 }
             }
         }

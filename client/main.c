@@ -29,8 +29,8 @@ int main(int argc, char* argv[]) {
     int SERVER_PORT; 
 
     // Get port number from argv
-    if(argc != 2) {
-        printf("Usage: %s <port>\n", argv[0]);
+    if(argc != 3) {
+        printf("Usage: %s <port> <client_ID> \n", argv[0]);
         return -1;
     }
     SERVER_PORT = atoi(argv[1]);
@@ -38,9 +38,10 @@ int main(int argc, char* argv[]) {
     // Initialize server
     int client_socket = connect_to_server(SERVER_PORT);
 
-    // Send hello message
-    message* hello_message = get_HELLO_message("Client1");
-    print_message(hello_message);
+    // Send hello message (Client 1)
+    // message* hello_message = get_HELLO_message("Client1");
+    message* hello_message = get_HELLO_message(argv[2]);
+    // print_message(hello_message);
     printf("Writing message to server...\n");
     convert_message_to_network_byte_order(hello_message);
     write_to_server(client_socket, (char*) hello_message);
@@ -54,10 +55,42 @@ int main(int argc, char* argv[]) {
     convert_message_to_host_byte_order(message_response);
     print_message(message_response);
 
+    // printf("Receiving message from server...\n");
+    message* message_response_two = malloc(sizeof(message));
+    bytes_received = read(client_socket, message_response_two, sizeof(message));
+    printf("Received %d bytes from server\n", bytes_received);
+    convert_message_to_host_byte_order(message_response_two);
+    print_message(message_response_two);
 
+
+
+    // // Send hello message (Client 2)
+    // hello_message = get_HELLO_message("Client2");
+    // print_message(hello_message);
+    // printf("Writing message to server...\n");
+    // convert_message_to_network_byte_order(hello_message);
+    // write_to_server(client_socket, (char*) hello_message);
+    // free(hello_message);
+
+    // // Receive response from server
+    // printf("Receiving message from server...\n");
+    // // message* message_response = malloc(sizeof(message));
+    // bytes_received = read(client_socket, message_response, sizeof(message));
+    // printf("Received %d bytes from server\n", bytes_received);
+    // convert_message_to_host_byte_order(message_response);
+    // print_message(message_response);
+
+    // // printf("Receiving message from server...\n");
+    // // message* message_response_two = malloc(sizeof(message));
+    // bytes_received = read(client_socket, message_response_two, sizeof(message));
+    // printf("Received %d bytes from server\n", bytes_received);
+    // convert_message_to_host_byte_order(message_response_two);
+    // print_message(message_response_two);
 
     // Free buffer
+    sleep(2);
     free(message_response);
+    // free(message_response_two);
 
     // Disconnect from server
     disconnect_from_server(client_socket);
