@@ -13,14 +13,17 @@
 
 // ----GLOBAL VARIABLES----------------------------------------------------------------------------
 
+#define HEADER_SIZE 50
 
 //----FUNCTIONS------------------------------------------------------------------------------------
 
-// Given ptr to head pointer, create new connection and add to connection list, modify
-// header as needed
+// Given ptr to head of connection_list, create new connection and 
+// add to connection list, modify header as needed
 void add_connection(connection_list** connection_list_head, int socket_fd) {
+    
     // Create connection
     connection* new_connection = create_connection(socket_fd);
+
     // Create new node
     connection_list* new_connection_list = malloc(sizeof(connection_list));
     new_connection_list->connection = new_connection;
@@ -66,6 +69,26 @@ connection* get_connection(connection_list** connection_list_head, int socket_fd
 bool connection_present(connection_list** connection_list_head, int socket_fd) {
     connection* connection = get_connection(connection_list_head, socket_fd);
     return connection != NULL;
+}
+
+// Return true if two connections exist with the same client_ID.
+bool duplicate_clients(connection_list** connection_list_head, char* client_ID) {
+    int client_ID_count = 0;
+    if(*connection_list_head != NULL) {
+        connection_list* connection_list_ref = *connection_list_head;
+        while(connection_list_ref != NULL) {
+            if(connection_list_ref->connection->data_stored >= HEADER_SIZE) {
+                if(strcmp(connection_list_ref->connection->message->source, client_ID) == 0){
+                    client_ID_count += 1;
+                    if(client_ID_count == 2) {
+                        return true;
+                    }
+                }
+            }
+            connection_list_ref = connection_list_ref->next;
+        }
+    }
+    return false;
 }
 
 // Given pointer to head of connection list, return list of 
@@ -121,6 +144,31 @@ void print_connection_list(connection_list** connection_list_head_ref) {
         printf("----------------------------------------\n");
         connection_list_ref = connection_list_ref->next; 
     }
+}
+
+// Given pointer to head of connection list and connection, remove connection
+// from list
+bool remove_connection(connection_list** connection_list_head_ref, connection* connection_to_remove){
+    connection_list* connection_list_ref_prev = NULL;
+    connection_list* connection_list_ref = *connection_list_head_ref;
+    while(connection_list_ref != NULL) {
+        if(connection_list_ref->connection == connection_to_remove) {
+            printf("Found connection to remove\n");
+            if(connection_list_ref_prev != NULL) {
+                connection_list_ref_prev->next = connection_list_ref->next;
+            } else {
+                *connection_list_head_ref = connection_list_ref->next;
+            }
+            free(connection_list_ref->connection->message);
+            free(connection_list_ref->connection);
+            free(connection_list_ref);
+            return true;
+        } else{
+            connection_list_ref_prev = connection_list_ref;
+            connection_list_ref = connection_list_ref->next;
+        }
+    }
+    return false;
 }
 
 

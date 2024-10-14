@@ -20,6 +20,7 @@
 #include <sys/uio.h>
 #include <unistd.h>
 // ----GLOBAL VARIABLES----------------------------------------------------------------------------
+#define HEADER_SIZE 50
 
 //----FUNCTIONS------------------------------------------------------------------------------------
 
@@ -39,12 +40,10 @@ int main(int argc, char* argv[]) {
     int client_socket = connect_to_server(SERVER_PORT);
 
     // Send hello message (Client 1)
-    // message* hello_message = get_HELLO_message("Client1");
     message* hello_message = get_HELLO_message(argv[2]);
-    // print_message(hello_message);
     printf("Writing message to server...\n");
     convert_message_to_network_byte_order(hello_message);
-    write_to_server(client_socket, (char*) hello_message);
+    write_to_server(client_socket, (char*) hello_message, HEADER_SIZE);
     free(hello_message);
 
     // Receive response from server

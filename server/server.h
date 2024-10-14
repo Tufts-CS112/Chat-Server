@@ -16,8 +16,9 @@
 int initialize_server(int PORT);
 void send_message(int socket_fd, message* message);
 void write_to_client(int client_socket, char* buffer);
-void receive_data(int socket, connection_list** connection_list_head_ref);
-void server_response(int socket_fd, connection_list** connection_list_head_ref);
+// void receive_data(int socket, connection_list** connection_list_head_ref);
+void receive_and_respond(int socket, connection_list** connection_list_head_ref);
+// void server_response(int socket_fd, connection_list** connection_list_head_ref);
 
 #endif
 //-------------------------------------------------------------------------------------------------

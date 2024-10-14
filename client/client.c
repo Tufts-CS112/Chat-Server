@@ -62,8 +62,8 @@ void disconnect_from_server(int client_socket){
 }
 
 // Write buffer to server
-void write_to_server(int client_socket, char* buffer) {
-    write(client_socket, buffer, sizeof(struct message));
+void write_to_server(int client_socket, char* buffer, int bytes_to_read) {
+    write(client_socket, buffer, bytes_to_read);
 }
 
 

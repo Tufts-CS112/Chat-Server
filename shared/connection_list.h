@@ -30,6 +30,8 @@ message* get_CLIENT_LIST_message(char* client_id, connection_list** connection_l
 bool connection_present(connection_list** connection_list_head, int socket_fd);
 void free_client_list(connection_list* connection_list_head);
 void print_connection_list(connection_list** connection_list_head);
+bool duplicate_clients(connection_list** connection_list_head, char* client_ID);
+bool remove_connection(connection_list** connection_list_ref, connection* connection_to_remove);
 
 
 #endif

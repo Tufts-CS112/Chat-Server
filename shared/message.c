@@ -32,12 +32,6 @@ void print_message(message* message) {
     printf("  ----------------------------------------\n");
 }
 
-// Copy contents of message to buffer for writing to server
-// char* message_to_buffer(message message){
-//     char* buffer = malloc(sizeof(struct message));
-//     memcpy(buffer, &message, sizeof(struct message));
-//     return buffer;
-// }
 
 void convert_message_to_network_byte_order(message* message){
     message->type = htons(message->type);
@@ -88,45 +82,20 @@ message* get_CLIENT_LIST_empty_message(char* client_id) {
     strncpy(message->source, "Server", sizeof(message->source)-1);
     strncpy(message->destination, client_id, sizeof(message->destination)-1);
     message->message_ID = 0;
-    // strncpy(message->data, client_list, )
-    // // Get client ID's and add them to the Data field
-    // connection_list* connection_list_ref = *connection_list_head_ref;
-    // int offset = 0;
-    // while(connection_list_ref != NULL) {
-    //     char* connection_client_id = connection_list_ref->connection->message->source;
-    //     strncpy(message->data + offset, connection_client_id, strlen(connection_client_id));
-    //     offset += strlen(connection_client_id);
-    //     message->data[offset] = '\0';
-    //     offset++;
-    //     connection_list_ref = connection_list_ref->next;
-    // }
     return message;
 }
 
-
-// // Return LIST_REQUEST message (as specified by specs)
-// message get_LIST_REQUEST_message(const char* client_id) {
-    // message message;
-    // memset(&message, 0, sizeof(message));
-//     message.type = 3;
-//     strcpy(message.source, client_id);
-//     strcpy(message.destination, "Server");
-//     message.length = 0;
-//     message.message_ID = 0;
-//     return message;
-// }
-
-// Return LIST_REQUEST message (as specified by specs)
-// message get_CLIENT_LIST_message(const char* client_id) {
-    // message message;
-    // memset(&message, 0, sizeof(message));
-//     message.type = 4;
-//     strcpy(message.source, "Server");
-//     strcpy(message.destination, client_id);
-//     message.length = 0;
-//     message.message_ID = 0;
-//     return message;
-// }
+// Return CLIENT_ALREADY_PRESENT error message (as specified by specs)
+message* get_CLIENT_ALREADY_PRESENT_error(char* client_id) {
+    message* message = malloc(sizeof(struct message));
+    memset(message, 0, sizeof(struct message));
+    message->type = 7;
+    strncpy(message->source, "Server", sizeof(message->source)-1);
+    strncpy(message->destination, client_id, sizeof(message->destination)-1);
+    message->length = 0;
+    message->message_ID = 0;
+    return message;
+}
 
 
 //-------------------------------------------------------------------------------------------------

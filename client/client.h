@@ -14,7 +14,7 @@
 //----FUNCTIONS------------------------------------------------------------------------------------
 int connect_to_server(int LISTENING_PORT);
 void disconnect_from_server(int client_socket);
-void write_to_server(int client_socket, char* message);
+void write_to_server(int client_socket, char* message, int bytes_to_read);
 
 #endif
 //-------------------------------------------------------------------------------------------------
