@@ -5,8 +5,8 @@
 // Usage:       Implementation file for server
 //*************************************************************************************************
 #include "server.h"
-#include "../shared/message.h"
-#include "../shared/connection_list.h"
+#include "message.h"
+#include "connection_list.h"
 
 #include <stdio.h>
 #include <stdlib.h>

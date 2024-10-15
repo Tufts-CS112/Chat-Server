@@ -7,7 +7,7 @@
 #ifndef SERVER_H
 #define SERVER_H
 
-#include "../shared/connection_list.h"
+#include "connection_list.h"
 // ----GLOBAL VARIABLES----------------------------------------------------------------------------
 
 // ----STRUCT--------------------------------------------------------------------------------------
