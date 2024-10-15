@@ -23,7 +23,7 @@ typedef struct connection_list{
 } connection_list;
 
 //----FUNCTIONS------------------------------------------------------------------------------------
-void add_connection(connection_list** connection_list_ref, int socket_fd);
+connection* add_connection(connection_list** connection_list_head, int socket_fd); 
 void add_connection_message(connection_list** connection_list_ref, int socket_fd, message* message, int bytes_received);
 connection* get_connection(connection_list** connection_list_head, int socket_fd);
 message* get_CLIENT_LIST_message(char* client_id, connection_list** connection_list_head);

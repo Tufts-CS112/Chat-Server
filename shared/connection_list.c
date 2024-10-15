@@ -19,7 +19,7 @@
 
 // Given ptr to head of connection_list, create new connection and 
 // add to connection list, modify header as needed
-void add_connection(connection_list** connection_list_head, int socket_fd) {
+connection* add_connection(connection_list** connection_list_head, int socket_fd) {
     
     // Create connection
     connection* new_connection = create_connection(socket_fd);
@@ -39,6 +39,7 @@ void add_connection(connection_list** connection_list_head, int socket_fd) {
         }
         connection_list_ref->next = new_connection_list;
     }
+    return new_connection;
 }
 
 // Given pointer to head of connection list, socket_fd, and message, add message to connection 

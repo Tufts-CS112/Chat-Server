@@ -55,150 +55,126 @@ void receive_and_respond(int socket_fd, connection_list** connection_list_head_r
     int bytes_received = recv(socket_fd, buffer, sizeof(message), 0);
     printf("Bytes received: %d\n", bytes_received);
     connection* connection = get_connection(connection_list_head_ref, socket_fd);
-    if(connection->data_stored < HEADER_SIZE) {
-        int remaining_header_bytes = HEADER_SIZE - connection->data_stored;
-        int remaining_connection_bytes = bytes_received;
-        int bytes_to_copy = bytes_received;
-        if(bytes_received > remaining_header_bytes) {
-            bytes_to_copy = remaining_header_bytes;
-        }
 
-        memcpy(connection->message + connection->data_stored, buffer, bytes_to_copy);
-        connection->data_stored += bytes_received;
-        remaining_connection_bytes -= bytes_to_copy;
+    // Copy the connection bytes into messages, accounting for reception of partial
+    // messages and multiple messages within a single transmission
+    int remaining_connection_bytes = bytes_received;
+    int connection_bytes_copied = 0;
+    int bytes_to_copy;
 
-        // Once complete header is received, convert to host byte order
-        // to interpret message
-        if(connection->data_stored == HEADER_SIZE) {
-            printf("Complete header received. Converting to host-byte order\n");
-            convert_message_to_host_byte_order(connection->message);
-        }
+    while(remaining_connection_bytes > 0) {
+        // Copy bytes until header is filled, then convert to host-byte-order for readability
+        if(connection->data_stored < HEADER_SIZE) {
+            int remaining_header_bytes = HEADER_SIZE - connection->data_stored;
+            bytes_to_copy = (remaining_header_bytes > remaining_connection_bytes) ? remaining_connection_bytes : remaining_header_bytes;
+            printf("Received %d bytes, copying %d bytes\n", remaining_connection_bytes, bytes_to_copy);
+            memcpy(connection->message + connection->data_stored, buffer+connection_bytes_copied, bytes_to_copy);
+            connection->data_stored += bytes_to_copy;
+            remaining_connection_bytes -= bytes_to_copy;
+            connection_bytes_copied += bytes_to_copy;
 
-        // If there are additional bytes past the header, check whether they are meant for data
-        // section. If so, add to data section, otherwise throw error
-        int remaining_message_bytes = (HEADER_SIZE + connection->message->length) - connection->data_stored;
-        if(remaining_connection_bytes > 0 && remaining_message_bytes > 0) {
-            if(remaining_connection_bytes > remaining_message_bytes) {
-                memcpy(connection->message + connection->data_stored, buffer+bytes_to_copy, remaining_message_bytes);
-                printf("Error: more bytes received from client than specified by message data size");
-            } else {
-                memcpy(connection->message + connection->data_stored, buffer+bytes_to_copy, remaining_connection_bytes);
+            // Once complete header is received, convert to host byte order
+            // to interpret message
+            if(connection->data_stored == HEADER_SIZE) {
+                printf("Complete header received. Converting to host-byte order\n");
+                convert_message_to_host_byte_order(connection->message);
             }
-        }
-    } else {
-        int remaining_message_bytes = (HEADER_SIZE + connection->message->length) - connection->data_stored;
-        if(remaining_message_bytes > 0 && bytes_received > 0) {
-            if(bytes_received > remaining_message_bytes) {
-                memcpy(connection->message + connection->data_stored, buffer, remaining_message_bytes);
-                printf("Error: more bytes received from client than specified by message data size");
-                connection->data_stored += remaining_message_bytes;
+
+            bool message_complete = (connection->data_stored >= HEADER_SIZE) && 
+                                    (connection->data_stored == HEADER_SIZE + connection->message->length);
+            if(message_complete) {
+                printf("Full message received. Server responding...\n");
+                server_response(socket_fd, connection, connection_list_head_ref);
+            }
+        } else {
+
+            // Determine whether post-header bytes are meant for data of same message, 
+            // or are beginning of new message
+            int remaining_message_bytes = (HEADER_SIZE + connection->message->length) - connection->data_stored;
+            printf("%d bytes remaining in transmission, %d bytes remaining to be filled in message\n", remaining_connection_bytes, remaining_message_bytes);
+            if(remaining_message_bytes > 0) {
+                // Copy bytes up until end of message, as prescribed by message->length field
+                bytes_to_copy = (remaining_message_bytes > remaining_connection_bytes) ? remaining_connection_bytes : remaining_message_bytes;
+                memcpy(connection->message + connection->data_stored, buffer+connection_bytes_copied, bytes_to_copy);
+                connection->data_stored += bytes_to_copy;
+                remaining_connection_bytes -= bytes_to_copy;
+                connection_bytes_copied += bytes_to_copy;
+
+                // If message is complete, respond accordingly
+                if(HEADER_SIZE + connection->message->length == connection->data_stored) {
+                    printf("Full message received. Server responding...\n");
+                    server_response(socket_fd, connection, connection_list_head_ref);
+                }
             } else {
-                memcpy(connection->message + connection->data_stored, buffer, bytes_received);
-                connection->data_stored += bytes_received;
+
+                // Remaining connection bytes are a new message
+                printf("Interpretting remaining bytes from transmission as new message\n");
+
+                // Create new connection
+                printf("Adding new connection to connection list\n");
+                connection = add_connection(connection_list_head_ref, socket_fd);
             }
         }
     }
+}
 
-    // Interpret message and respond accordingly
-    // printf("Bytes of data stored: %d\n", connection->data_stored);
-    // printf("message.length: %d\n", connection->message->length);
-    bool message_complete = (connection->data_stored >= HEADER_SIZE) && 
-                            (connection->data_stored == HEADER_SIZE + connection->message->length);
-    if(message_complete){
-        printf("Full message received\n");
-        struct message* message = connection->message;
-        switch(message->type) {
-            // Hello message
-            case 1:
-                // Check if already present
-                if(!duplicate_clients(connection_list_head_ref, message->source)) {
+void server_response(int socket_fd, connection* connection, connection_list** connection_list_head_ref){
+    struct message* message = connection->message;
+    switch(message->type) {
+        // Hello message
+        case 1:
+            // Check if already present
+            if(!duplicate_clients(connection_list_head_ref, message->source)) {
 
-                    // Send back HELLO_ACK message
-                    printf("Sending HELLO_ACK\n");
-                    struct message* message_HELLO_ACK = get_HELLO_ACK_message(message->source);
-                    convert_message_to_network_byte_order(message_HELLO_ACK);
-                    send_message(socket_fd, message_HELLO_ACK);
-                    free(message_HELLO_ACK);
+                // Send back HELLO_ACK message
+                printf("Sending HELLO_ACK\n");
+                struct message* message_HELLO_ACK = get_HELLO_ACK_message(message->source);
+                convert_message_to_network_byte_order(message_HELLO_ACK);
+                send_message(socket_fd, message_HELLO_ACK);
+                free(message_HELLO_ACK);
 
-                    // Send CLIENT_LIST message
-                    printf("Sending CLIENT_LIST\n");
-                    struct message* message_CLIENT_LIST = get_CLIENT_LIST_message(message->source, connection_list_head_ref);
-                    convert_message_to_network_byte_order(message_CLIENT_LIST);
-                    send_message(socket_fd, message_CLIENT_LIST);
-                    free(message_CLIENT_LIST);
-                } else {
-
-                    // Return CLIENT_ALREADY_PRESENT error message
-                    printf("ClientID already present in connection list - sending error message and closing connection\n");
-                    struct message* error_CLIENT_ALREADY_PRESENT = get_CLIENT_ALREADY_PRESENT_error(message->source);
-                    convert_message_to_network_byte_order(error_CLIENT_ALREADY_PRESENT);
-                    send_message(socket_fd, error_CLIENT_ALREADY_PRESENT);
-                    printf("Printing connection list before and after removal of duplicate connection\n");
-                    // Remove from connection_list and close connection
-                    print_connection_list(connection_list_head_ref);
-                    remove_connection(connection_list_head_ref, connection);
-                    print_connection_list(connection_list_head_ref);
-                    close(socket_fd);
-                }
-                break;
-
-            // List request
-            case 3:
+                // Send CLIENT_LIST message
+                printf("Sending CLIENT_LIST\n");
                 struct message* message_CLIENT_LIST = get_CLIENT_LIST_message(message->source, connection_list_head_ref);
                 convert_message_to_network_byte_order(message_CLIENT_LIST);
                 send_message(socket_fd, message_CLIENT_LIST);
                 free(message_CLIENT_LIST);
-                printf("Printing connection list after sending client connection list\n");
+            } else {
+
+                // Return CLIENT_ALREADY_PRESENT error message
+                printf("ClientID already present in connection list - sending error message and closing connection\n");
+                struct message* error_CLIENT_ALREADY_PRESENT = get_CLIENT_ALREADY_PRESENT_error(message->source);
+                convert_message_to_network_byte_order(error_CLIENT_ALREADY_PRESENT);
+                send_message(socket_fd, error_CLIENT_ALREADY_PRESENT);
+                printf("Printing connection list before and after removal of duplicate connection\n");
                 // Remove from connection_list and close connection
                 print_connection_list(connection_list_head_ref);
-                break;
-            // Chat message
-            case 5:
-                break;
-            // Exit message
-            case 6:
-                break;
-        }
-    }
+                remove_connection(connection_list_head_ref, connection);
+                print_connection_list(connection_list_head_ref);
+                close(socket_fd);
+            }
+            break;
 
-
-
-    // Store client data
-    // connection* connection = get_connection(connection_list_head_ref, socket);
-    // if(connection->data_stored == 0) {
-    //     message* message = malloc(sizeof(struct message));
-    //     memcpy(message, buffer, bytes_received);
-    //     convert_message_to_host_byte_order(message);
-    //     printf("Message received: \n");
-    //     print_message(message);
-    //     add_connection_message(connection_list_head_ref, socket, message, bytes_received);
-    // }
-    // print_connection_list(connection_list_head_ref);
-    free(buffer);
-}
-
-void server_response(int socket_fd, connection_list** connection_list_head_ref) {
-    connection* connection = get_connection(connection_list_head_ref, socket_fd);
-    if(connection->data_stored > HEADER_SIZE) {
-        int message_type = connection->message->type;
-        // HELLO message type
-        if(message_type == 1) {
-            // Send back HELLO_ACK message
-            printf("Sending HELLO_ACK\n");
-            message* message_HELLO_ACK = get_HELLO_ACK_message(connection->message->source);
-            convert_message_to_network_byte_order(message_HELLO_ACK);
-            send_message(socket_fd, message_HELLO_ACK);
-            free(message_HELLO_ACK);
-
-            // Send CLIENT_LIST message
-            printf("Sending CLIENT_LIST\n");
-            message* message_CLIENT_LIST = get_CLIENT_LIST_message(connection->message->source, connection_list_head_ref);
+        // List request
+        case 3:
+            struct message* message_CLIENT_LIST = get_CLIENT_LIST_message(message->source, connection_list_head_ref);
             convert_message_to_network_byte_order(message_CLIENT_LIST);
             send_message(socket_fd, message_CLIENT_LIST);
             free(message_CLIENT_LIST);
-        }
+            printf("Printing connection list after sending client connection list\n");
+            // Remove from connection_list and close connection
+            remove_connection(connection_list_head_ref, connection);
+            print_connection_list(connection_list_head_ref);
+            break;
+        // Chat message
+        case 5:
+            break;
+        // Exit message
+        case 6:
+            break;
     }
 }
+
 
 
 int initialize_server(int PORT) {
