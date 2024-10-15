@@ -33,6 +33,7 @@ message* get_HELLO_ACK_message(char* client_id);
 message* get_LIST_REQUEST_message(char* client_id);
 message* get_CLIENT_LIST_empty_message(char* client_id);
 message* get_CLIENT_ALREADY_PRESENT_error(char* client_id);
+message* get_EXIT_message(char* client_id);
 void convert_message_to_network_byte_order(message* message);
 void convert_message_to_host_byte_order(message* message);
 #endif

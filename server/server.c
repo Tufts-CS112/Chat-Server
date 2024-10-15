@@ -61,6 +61,7 @@ void receive_and_respond(int socket_fd, connection_list** connection_list_head_r
     int remaining_connection_bytes = bytes_received;
     int connection_bytes_copied = 0;
     int bytes_to_copy;
+    sleep(1);
 
     while(remaining_connection_bytes > 0) {
         // Copy bytes until header is filled, then convert to host-byte-order for readability
@@ -139,6 +140,7 @@ void server_response(int socket_fd, connection* connection, connection_list** co
                 convert_message_to_network_byte_order(message_CLIENT_LIST);
                 send_message(socket_fd, message_CLIENT_LIST);
                 free(message_CLIENT_LIST);
+                printf("\n");
             } else {
 
                 // Return CLIENT_ALREADY_PRESENT error message
@@ -152,19 +154,20 @@ void server_response(int socket_fd, connection* connection, connection_list** co
                 remove_connection(connection_list_head_ref, connection);
                 print_connection_list(connection_list_head_ref);
                 close(socket_fd);
+                printf("\n");
+
             }
             break;
 
         // List request
         case 3:
+            // printf("Sending client list message\n");
+            // print_connection_list(connection_list_head_ref);
+            remove_connection(connection_list_head_ref, connection);
             struct message* message_CLIENT_LIST = get_CLIENT_LIST_message(message->source, connection_list_head_ref);
             convert_message_to_network_byte_order(message_CLIENT_LIST);
             send_message(socket_fd, message_CLIENT_LIST);
             free(message_CLIENT_LIST);
-            printf("Printing connection list after sending client connection list\n");
-            // Remove from connection_list and close connection
-            remove_connection(connection_list_head_ref, connection);
-            print_connection_list(connection_list_head_ref);
             break;
         // Chat message
         case 5:
