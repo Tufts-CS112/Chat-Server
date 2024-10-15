@@ -89,6 +89,21 @@ int main(int argc, char* argv[]) {
                 convert_message_to_host_byte_order(message_response);
                 print_message(message_response);
                 break;  
+
+            case 5:
+                char client_destination[20];
+                char message_content[400];
+                printf("Destination client_id: \n");
+                scanf("%s", &client_destination);
+                printf("Message: \n");
+                scanf("%s", &message_content);
+                message* CHAT_message = get_CHAT_message(argv[2], client_destination, message_content);
+                print_message(CHAT_message);
+                int bytes_to_write = HEADER_SIZE + CHAT_message->length;
+                printf("Bytes to write to server: %d\n", bytes_to_write);
+                convert_message_to_network_byte_order(CHAT_message);
+                write_to_server(client_socket, (char*) CHAT_message, bytes_to_write);
+                break;
             
             case 6:
                 // Send EXIT message
@@ -97,6 +112,18 @@ int main(int argc, char* argv[]) {
                 convert_message_to_network_byte_order(EXIT_message);
                 write_to_server(client_socket, (char*) EXIT_message, HEADER_SIZE);
                 free(EXIT_message);  
+                break;
+
+            case 8:
+                // Send EXIT message
+                printf("Waiting to receive messages\n");
+                // message_response = malloc(sizeof(message));
+                while(1){
+                    bytes_received = read(client_socket, message_response, sizeof(message));
+                    printf("Received %d bytes from server\n", bytes_received);
+                    convert_message_to_host_byte_order(message_response);
+                    print_message(message_response);
+                }  
                 break;
         }
 

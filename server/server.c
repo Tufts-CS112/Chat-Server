@@ -84,7 +84,8 @@ void receive_and_respond(int socket_fd, connection_list** connection_list_head_r
             bool message_complete = (connection->data_stored >= HEADER_SIZE) && 
                                     (connection->data_stored == HEADER_SIZE + connection->message->length);
             if(message_complete) {
-                printf("Full message received. Server responding...\n");
+                printf("Full message received. Printing message below. Server responding...\n");
+                print_message(connection->message);
                 server_response(socket_fd, connection, connection_list_head_ref);
             }
         } else {
@@ -96,14 +97,37 @@ void receive_and_respond(int socket_fd, connection_list** connection_list_head_r
             if(remaining_message_bytes > 0) {
                 // Copy bytes up until end of message, as prescribed by message->length field
                 bytes_to_copy = (remaining_message_bytes > remaining_connection_bytes) ? remaining_connection_bytes : remaining_message_bytes;
-                memcpy(connection->message + connection->data_stored, buffer+connection_bytes_copied, bytes_to_copy);
+                // printf("Copying %d bytes into connection->message, beginning at the %d'th byte of message and at byte %d of the buffer \n", bytes_to_copy, connection->data_stored, connection_bytes_copied);
+                memcpy(connection->message->data + (connection->data_stored - HEADER_SIZE), buffer+connection_bytes_copied, bytes_to_copy);
+                // memcpy(connection->message + connection->data_stored, buffer+connection_bytes_copied, bytes_to_copy);
+
+                // char* copied_bytes = malloc(bytes_to_copy+1);
+                // memcpy(copied_bytes, buffer+connection_bytes_copied, bytes_to_copy);
+                // copied_bytes[bytes_to_copy] = '\0';
+                // printf("Test: %s\n", copied_bytes);
+                // free(copied_bytes);
+                // printf("Printing contents of message->data field character-by-character directly after copied: \n");
+                // for(int i = 0; i < bytes_to_copy; i++) {
+                //     printf("%c", connection->message + connection->data_stored + i);
+                // }
+                // printf("\n");
+
                 connection->data_stored += bytes_to_copy;
                 remaining_connection_bytes -= bytes_to_copy;
                 connection_bytes_copied += bytes_to_copy;
 
+
                 // If message is complete, respond accordingly
                 if(HEADER_SIZE + connection->message->length == connection->data_stored) {
-                    printf("Full message received. Server responding...\n");
+                    connection->message->data[connection->message->length] = '\0';
+                    // printf("connection->message->length: %d\n", connection->message->length);
+                    // printf("Printing message data field character-by-character: \n");
+                    // for(int i = 0; i < connection->message->length; i++) {
+                    //     printf("%c", connection->message->data[i]);
+                    // }
+                    // printf("\n");
+                    printf("Full message received. Printing message below. Server responding...\n");
+                    print_message(connection->message);
                     server_response(socket_fd, connection, connection_list_head_ref);
                 }
             } else {
@@ -168,8 +192,19 @@ void server_response(int socket_fd, connection* connection, connection_list** co
             send_message(socket_fd, message_CLIENT_LIST);
             free(message_CLIENT_LIST);
             break;
+
         // Chat message
         case 5:
+            // Get socket fd associated with recipient
+            int recipient_socket_fd = get_socket(connection_list_head_ref, connection->message->destination);
+            printf("Found socket file descriptor of recipient client: %d\n", recipient_socket_fd);
+            // Send message
+            // printf("Message being sent: \n");
+            print_message(connection->message);
+            convert_message_to_network_byte_order(connection->message);
+            send_message(recipient_socket_fd, connection->message);
+            // Remove message from connection list
+            remove_connection(connection_list_head_ref, connection);
             break;
 
         // Exit message

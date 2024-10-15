@@ -26,6 +26,7 @@ typedef struct connection_list{
 connection* add_connection(connection_list** connection_list_head, int socket_fd); 
 void add_connection_message(connection_list** connection_list_ref, int socket_fd, message* message, int bytes_received);
 connection* get_connection(connection_list** connection_list_head, int socket_fd);
+int get_socket(connection_list** connection_list_head, char* client_id);
 message* get_CLIENT_LIST_message(char* client_id, connection_list** connection_list_head);
 bool connection_present(connection_list** connection_list_head, int socket_fd);
 void free_client_list(connection_list* connection_list_head);

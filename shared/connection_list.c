@@ -65,6 +65,21 @@ connection* get_connection(connection_list** connection_list_head, int socket_fd
     return connection;
 }
 
+// Given pointer to head of connection list and client_id, return
+// socket file descriptor of associated client
+int get_socket(connection_list** connection_list_head, char* client_id) {
+    int socket_fd = -1;
+    connection_list* connection_list_ref = *connection_list_head;
+    while(connection_list_ref != NULL) {
+        if(strcmp(connection_list_ref->connection->message->source, client_id) == 0) {
+            socket_fd = connection_list_ref->connection->client_socket_fd;
+            break;
+        }
+        connection_list_ref = connection_list_ref->next;
+    }
+    return socket_fd;
+}
+
 // Given pointer to head of connection list and socket_fd, return true
 // if connection is already present in list, else false
 bool connection_present(connection_list** connection_list_head, int socket_fd) {
