@@ -97,5 +97,18 @@ message* get_CLIENT_ALREADY_PRESENT_error(char* client_id) {
     return message;
 }
 
+message* get_LIST_REQUEST_message(char* client_id) {
+    message* message = malloc(sizeof(struct message));
+    memset(message, 0, sizeof(struct message));
+    message->type = 3;
+    strncpy(message->source, client_id, sizeof(message->source)-1);
+    message->source[sizeof(message->source)-1] = '\0';
+    strncpy(message->destination, "Server", sizeof(message->destination)-1);
+    message->destination[sizeof(message->destination)-1] = '\0';
+    message->length = 0;
+    message->message_ID = 0;
+    return message;
+}
+
 
 //-------------------------------------------------------------------------------------------------

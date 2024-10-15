@@ -39,12 +39,20 @@ int main(int argc, char* argv[]) {
     // Initialize server
     int client_socket = connect_to_server(SERVER_PORT);
 
-    // Send hello message (Client 1)
+    // Send hello message 
     message* hello_message = get_HELLO_message(argv[2]);
     printf("Writing message to server...\n");
     convert_message_to_network_byte_order(hello_message);
     write_to_server(client_socket, (char*) hello_message, HEADER_SIZE);
     free(hello_message);
+
+    if(strcmp(argv[2], "client2") == 0) {
+        printf("Sending client list request\n");
+        message* list_request_message = get_LIST_REQUEST_message(argv[2]);  
+        convert_message_to_network_byte_order(list_request_message);
+        write_to_server(client_socket, (char*) list_request_message, HEADER_SIZE);
+        free(list_request_message);  
+    }
 
     // Receive response from server
     printf("Receiving message from server...\n");
@@ -66,7 +74,7 @@ int main(int argc, char* argv[]) {
     }
     // Free buffer
     free(message_response);
-    // free(message_response_two);
+    free(message_response_two);
 
     // Disconnect from server
     disconnect_from_server(client_socket);

@@ -62,6 +62,7 @@ void receive_and_respond(int socket_fd, connection_list** connection_list_head_r
         if(bytes_received > remaining_header_bytes) {
             bytes_to_copy = remaining_header_bytes;
         }
+
         memcpy(connection->message + connection->data_stored, buffer, bytes_to_copy);
         connection->data_stored += bytes_received;
         remaining_connection_bytes -= bytes_to_copy;
@@ -99,9 +100,13 @@ void receive_and_respond(int socket_fd, connection_list** connection_list_head_r
     }
 
     // Interpret message and respond accordingly
-    if(connection->data_stored >= HEADER_SIZE && connection->data_stored == connection->message->length){
+    // printf("Bytes of data stored: %d\n", connection->data_stored);
+    // printf("message.length: %d\n", connection->message->length);
+    bool message_complete = (connection->data_stored >= HEADER_SIZE) && 
+                            (connection->data_stored == HEADER_SIZE + connection->message->length);
+    if(message_complete){
         printf("Full message received\n");
-        message* message = connection->message;
+        struct message* message = connection->message;
         switch(message->type) {
             // Hello message
             case 1:
@@ -124,19 +129,35 @@ void receive_and_respond(int socket_fd, connection_list** connection_list_head_r
                 } else {
 
                     // Return CLIENT_ALREADY_PRESENT error message
+                    printf("ClientID already present in connection list - sending error message and closing connection\n");
                     struct message* error_CLIENT_ALREADY_PRESENT = get_CLIENT_ALREADY_PRESENT_error(message->source);
+                    convert_message_to_network_byte_order(error_CLIENT_ALREADY_PRESENT);
                     send_message(socket_fd, error_CLIENT_ALREADY_PRESENT);
+                    printf("Printing connection list before and after removal of duplicate connection\n");
                     // Remove from connection_list and close connection
+                    print_connection_list(connection_list_head_ref);
                     remove_connection(connection_list_head_ref, connection);
+                    print_connection_list(connection_list_head_ref);
                     close(socket_fd);
                 }
+                break;
+
             // List request
             case 3:
+                struct message* message_CLIENT_LIST = get_CLIENT_LIST_message(message->source, connection_list_head_ref);
+                convert_message_to_network_byte_order(message_CLIENT_LIST);
+                send_message(socket_fd, message_CLIENT_LIST);
+                free(message_CLIENT_LIST);
+                printf("Printing connection list after sending client connection list\n");
+                // Remove from connection_list and close connection
+                print_connection_list(connection_list_head_ref);
+                break;
             // Chat message
             case 5:
+                break;
             // Exit message
             case 6:
-
+                break;
         }
     }
 

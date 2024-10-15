@@ -30,6 +30,7 @@ typedef struct __attribute__((__packed__)) message {
 void print_message(message* message);
 message* get_HELLO_message(char* client_id);
 message* get_HELLO_ACK_message(char* client_id);
+message* get_LIST_REQUEST_message(char* client_id);
 message* get_CLIENT_LIST_empty_message(char* client_id);
 message* get_CLIENT_ALREADY_PRESENT_error(char* client_id);
 void convert_message_to_network_byte_order(message* message);

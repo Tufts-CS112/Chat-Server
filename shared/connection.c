@@ -20,6 +20,7 @@ connection* create_connection(int client_socket_fd) {
     connection* connection = malloc(sizeof(connection));
     connection->client_socket_fd = client_socket_fd;
     connection->data_stored = 0;
+    connection->message = malloc(sizeof(message));
     return connection;
 }
 //-------------------------------------------------------------------------------------------------
