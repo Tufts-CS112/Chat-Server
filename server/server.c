@@ -161,8 +161,7 @@ void server_response(int socket_fd, connection* connection, connection_list** co
 
         // List request
         case 3:
-            // printf("Sending client list message\n");
-            // print_connection_list(connection_list_head_ref);
+            printf("Sending client list message\n");
             remove_connection(connection_list_head_ref, connection);
             struct message* message_CLIENT_LIST = get_CLIENT_LIST_message(message->source, connection_list_head_ref);
             convert_message_to_network_byte_order(message_CLIENT_LIST);
@@ -172,8 +171,16 @@ void server_response(int socket_fd, connection* connection, connection_list** co
         // Chat message
         case 5:
             break;
+
         // Exit message
         case 6:
+            printf("Removing connection from list\n");
+            int client_socket_fd = connection->client_socket_fd;
+            // First, remove connection holding removal request
+            remove_connection(connection_list_head_ref, connection);
+            // Second, remove connection holding client connection
+            connection = get_connection(connection_list_head_ref, client_socket_fd);
+            remove_connection(connection_list_head_ref, connection);
             break;
     }
 }

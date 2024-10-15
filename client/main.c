@@ -44,7 +44,7 @@ int main(int argc, char* argv[]) {
     message* message_response = malloc(sizeof(message));
     message* message_response_two = malloc(sizeof(message)); 
     while(1) {
-        printf("Enter command: \n");
+        printf("\nEnter command: \n");
         scanf("%d", &command);
 
         switch(command){
@@ -89,6 +89,15 @@ int main(int argc, char* argv[]) {
                 convert_message_to_host_byte_order(message_response);
                 print_message(message_response);
                 break;  
+            
+            case 6:
+                // Send EXIT message
+                printf("Sending client EXIT message\n");
+                message* EXIT_message = get_EXIT_message(argv[2]);  
+                convert_message_to_network_byte_order(EXIT_message);
+                write_to_server(client_socket, (char*) EXIT_message, HEADER_SIZE);
+                free(EXIT_message);  
+                break;
         }
 
     }
