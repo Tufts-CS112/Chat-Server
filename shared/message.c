@@ -75,12 +75,50 @@ message* get_HELLO_ACK_message(char* client_id) {
     return message;
 }
 
+message* get_LIST_REQUEST_message(char* client_id) {
+    message* message = malloc(sizeof(struct message));
+    memset(message, 0, sizeof(struct message));
+    message->type = 3;
+    strncpy(message->source, client_id, sizeof(message->source)-1);
+    message->source[sizeof(message->source)-1] = '\0';
+    strncpy(message->destination, "Server", sizeof(message->destination)-1);
+    message->destination[sizeof(message->destination)-1] = '\0';
+    message->length = 0;
+    message->message_ID = 0;
+    return message;
+}
+
 message* get_CLIENT_LIST_empty_message(char* client_id) {
     message* message = malloc(sizeof(struct message));
     memset(message, 0, sizeof(struct message));
     message->type = 4;
     strncpy(message->source, "Server", sizeof(message->source)-1);
     strncpy(message->destination, client_id, sizeof(message->destination)-1);
+    message->message_ID = 0;
+    return message;
+}
+
+message* get_CHAT_message(char* client_id_source, char* client_id_destination, char* message_content) {
+    message* message = malloc(sizeof(struct message));
+    memset(message, 0, sizeof(struct message));
+    message->type = 5;
+    strncpy(message->source, client_id_source, sizeof(message->source)-1);
+    strncpy(message->destination, client_id_destination, sizeof(message->destination)-1);
+    message->length = strlen(message_content);
+    message->message_ID = 1;
+    strncpy(message->data, message_content, sizeof(message->data)-1);
+    return message;   
+}
+
+message* get_EXIT_message(char* client_id){
+    message* message = malloc(sizeof(struct message));
+    memset(message, 0, sizeof(struct message));
+    message->type = 6;
+    strncpy(message->source, client_id, sizeof(message->source)-1);
+    message->source[sizeof(message->source)-1] = '\0';
+    strncpy(message->destination, "Server", sizeof(message->destination)-1);
+    message->destination[sizeof(message->destination)-1] = '\0';
+    message->length = 0;
     message->message_ID = 0;
     return message;
 }
@@ -97,32 +135,6 @@ message* get_CLIENT_ALREADY_PRESENT_error(char* client_id) {
     return message;
 }
 
-message* get_LIST_REQUEST_message(char* client_id) {
-    message* message = malloc(sizeof(struct message));
-    memset(message, 0, sizeof(struct message));
-    message->type = 3;
-    strncpy(message->source, client_id, sizeof(message->source)-1);
-    message->source[sizeof(message->source)-1] = '\0';
-    strncpy(message->destination, "Server", sizeof(message->destination)-1);
-    message->destination[sizeof(message->destination)-1] = '\0';
-    message->length = 0;
-    message->message_ID = 0;
-    return message;
-}
-
-message* get_EXIT_message(char* client_id){
-    message* message = malloc(sizeof(struct message));
-    memset(message, 0, sizeof(struct message));
-    message->type = 6;
-    strncpy(message->source, client_id, sizeof(message->source)-1);
-    message->source[sizeof(message->source)-1] = '\0';
-    strncpy(message->destination, "Server", sizeof(message->destination)-1);
-    message->destination[sizeof(message->destination)-1] = '\0';
-    message->length = 0;
-    message->message_ID = 0;
-    return message;
-}
-
 message* get_CANNOT_DELIVER_error(char* client_id) {
     message* message = malloc(sizeof(struct message));
     memset(message, 0, sizeof(struct message));
@@ -134,17 +146,6 @@ message* get_CANNOT_DELIVER_error(char* client_id) {
     return message;
 }
 
-message* get_CHAT_message(char* client_id_source, char* client_id_destination, char* message_content) {
-    message* message = malloc(sizeof(struct message));
-    memset(message, 0, sizeof(struct message));
-    message->type = 5;
-    strncpy(message->source, client_id_source, sizeof(message->source)-1);
-    strncpy(message->destination, client_id_destination, sizeof(message->destination)-1);
-    message->length = strlen(message_content);
-    message->message_ID = 1;
-    strncpy(message->data, message_content, sizeof(message->data)-1);
-    return message;   
-}
 
 
 

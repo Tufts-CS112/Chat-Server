@@ -18,6 +18,8 @@
 #include <arpa/inet.h>
 #include <netdb.h>      // Provides hostent struct
 #include <sys/select.h> // Provides select() functionality
+#include <errno.h>      // Allows for printing of perror()
+
 
 
 // ----GLOBAL VARIABLES----------------------------------------------------------------------------
@@ -30,13 +32,18 @@ int max(int a, int b) {
     return (a > b) ? a : b;
 }
 
-void send_message(int socket_fd, message* message) {
+void send_message(int socket_fd, message* message, int message_size) {
     // Send message
-    write_to_client(socket_fd, (char*) message);
+    write_to_client(socket_fd, (char*) message, message_size);
 }
 
-void write_to_client(int client_socket, char* buffer) {
-    write(client_socket, buffer, sizeof(message));
+void write_to_client(int client_socket, char* buffer, int message_size) {
+    printf("%d bytes to write\n", message_size);
+    int bytes_written = write(client_socket, buffer, message_size);
+    printf("%d bytes written\n", bytes_written);
+    if(bytes_written < 0) {
+        perror("Error writing to client\n");
+    }
 }
 
 // Receive data from client connection. If new client, add
@@ -68,7 +75,7 @@ void receive_and_respond(int socket_fd, connection_list** connection_list_head_r
         if(connection->data_stored < HEADER_SIZE) {
             int remaining_header_bytes = HEADER_SIZE - connection->data_stored;
             bytes_to_copy = (remaining_header_bytes > remaining_connection_bytes) ? remaining_connection_bytes : remaining_header_bytes;
-            // printf("Received %d bytes, copying %d bytes\n", remaining_connection_bytes, bytes_to_copy);
+            printf("Received %d bytes, copying %d bytes\n", remaining_connection_bytes, bytes_to_copy);
             memcpy(connection->message + connection->data_stored, buffer+connection_bytes_copied, bytes_to_copy);
             connection->data_stored += bytes_to_copy;
             remaining_connection_bytes -= bytes_to_copy;
@@ -77,14 +84,14 @@ void receive_and_respond(int socket_fd, connection_list** connection_list_head_r
             // Once complete header is received, convert to host byte order
             // to interpret message
             if(connection->data_stored == HEADER_SIZE) {
-                // printf("Complete header received. Converting to host-byte order\n");
+                printf("Complete header received. Converting to host-byte order\n");
                 convert_message_to_host_byte_order(connection->message);
             }
 
             bool message_complete = (connection->data_stored >= HEADER_SIZE) && 
                                     (connection->data_stored == HEADER_SIZE + connection->message->length);
             if(message_complete) {
-                // printf("Full message received. Printing message below. Server responding...\n");
+                printf("Full message received. Printing message below. Server responding...\n");
                 print_message(connection->message);
                 server_response(socket_fd, connection, connection_list_head_ref, master_FD_SET);
             }
@@ -93,7 +100,7 @@ void receive_and_respond(int socket_fd, connection_list** connection_list_head_r
             // Determine whether post-header bytes are meant for data of same message, 
             // or are beginning of new message
             int remaining_message_bytes = (HEADER_SIZE + connection->message->length) - connection->data_stored;
-            // printf("%d bytes remaining in transmission, %d bytes remaining to be filled in message\n", remaining_connection_bytes, remaining_message_bytes);
+            printf("%d bytes remaining in transmission, %d bytes remaining to be filled in message\n", remaining_connection_bytes, remaining_message_bytes);
             if(remaining_message_bytes > 0) {
                 // Copy bytes up until end of message, as prescribed by message->length field
                 bytes_to_copy = (remaining_message_bytes > remaining_connection_bytes) ? remaining_connection_bytes : remaining_message_bytes;
@@ -106,17 +113,17 @@ void receive_and_respond(int socket_fd, connection_list** connection_list_head_r
                 // If message is complete, respond accordingly
                 if(HEADER_SIZE + connection->message->length == connection->data_stored) {
                     connection->message->data[connection->message->length] = '\0';
-                    // printf("Full message received. Printing message below. Server responding...\n");
-                    // print_message(connection->message);
+                    printf("Full message received. Printing message below. Server responding...\n");
+                    print_message(connection->message);
                     server_response(socket_fd, connection, connection_list_head_ref, master_FD_SET);
                 }
             } else {
 
                 // Remaining connection bytes are a new message
-                // printf("Interpretting remaining bytes from transmission as new message\n");
+                printf("Interpretting remaining bytes from transmission as new message\n");
 
                 // Create new connection
-                // printf("Adding new connection to connection list\n");
+                printf("Adding new connection to connection list\n");
                 connection = add_connection(connection_list_head_ref, socket_fd);
             }
         }
@@ -125,6 +132,7 @@ void receive_and_respond(int socket_fd, connection_list** connection_list_head_r
 
 void server_response(int socket_fd, connection* connection, connection_list** connection_list_head_ref, fd_set* master_FD_SET){
     struct message* message = connection->message;
+    int bytes_to_write;
     switch(message->type) {
         // Hello message
         case 1:
@@ -134,15 +142,18 @@ void server_response(int socket_fd, connection* connection, connection_list** co
                 // Send back HELLO_ACK message
                 printf("Sending HELLO_ACK\n");
                 struct message* message_HELLO_ACK = get_HELLO_ACK_message(message->source);
+                bytes_to_write = HEADER_SIZE+message_HELLO_ACK->length;
                 convert_message_to_network_byte_order(message_HELLO_ACK);
-                send_message(socket_fd, message_HELLO_ACK);
+                send_message(socket_fd, message_HELLO_ACK, bytes_to_write);
                 free(message_HELLO_ACK);
 
                 // Send CLIENT_LIST message
-                printf("Sending CLIENT_LIST\n");
+                printf("Sending CLIENT_LIST:\n");
                 struct message* message_CLIENT_LIST = get_CLIENT_LIST_message(message->source, connection_list_head_ref);
+                bytes_to_write = HEADER_SIZE+message_CLIENT_LIST->length;
+                print_message(message_CLIENT_LIST);
                 convert_message_to_network_byte_order(message_CLIENT_LIST);
-                send_message(socket_fd, message_CLIENT_LIST);
+                send_message(socket_fd, message_CLIENT_LIST, bytes_to_write);
                 free(message_CLIENT_LIST);
                 printf("\n");
             } else {
@@ -150,8 +161,9 @@ void server_response(int socket_fd, connection* connection, connection_list** co
                 // Return CLIENT_ALREADY_PRESENT error message
                 printf("ClientID already present in connection list - sending error message and closing connection\n");
                 struct message* error_CLIENT_ALREADY_PRESENT = get_CLIENT_ALREADY_PRESENT_error(message->source);
+                bytes_to_write = HEADER_SIZE+error_CLIENT_ALREADY_PRESENT->length;
                 convert_message_to_network_byte_order(error_CLIENT_ALREADY_PRESENT);
-                send_message(socket_fd, error_CLIENT_ALREADY_PRESENT);
+                send_message(socket_fd, error_CLIENT_ALREADY_PRESENT, bytes_to_write);
                 // printf("Printing connection list before and after removal of duplicate connection\n");
                 // Remove from connection_list, close connection, and remove from master FD_SET
                 print_connection_list(connection_list_head_ref);
@@ -169,8 +181,9 @@ void server_response(int socket_fd, connection* connection, connection_list** co
             printf("Sending client list message\n");
             remove_connection(connection_list_head_ref, connection);
             struct message* message_CLIENT_LIST = get_CLIENT_LIST_message(message->source, connection_list_head_ref);
+            bytes_to_write = HEADER_SIZE+message_CLIENT_LIST->length;
             convert_message_to_network_byte_order(message_CLIENT_LIST);
-            send_message(socket_fd, message_CLIENT_LIST);
+            send_message(socket_fd, message_CLIENT_LIST, bytes_to_write);
             free(message_CLIENT_LIST);
             break;
 
@@ -181,12 +194,14 @@ void server_response(int socket_fd, connection* connection, connection_list** co
             if(recipient_socket_fd >= 0) {
                 // printf("Found socket file descriptor of recipient client: %d\n", recipient_socket_fd);
                 print_message(connection->message);
+                bytes_to_write = HEADER_SIZE+message->length;
                 convert_message_to_network_byte_order(connection->message);
-                send_message(recipient_socket_fd, connection->message);
+                send_message(recipient_socket_fd, connection->message, bytes_to_write);
             } else {
                 struct message* error_CANNOT_DELIVER = get_CANNOT_DELIVER_error(message->source);
+                bytes_to_write = HEADER_SIZE+error_CANNOT_DELIVER->length;
                 convert_message_to_network_byte_order(error_CANNOT_DELIVER);
-                send_message(socket_fd, error_CANNOT_DELIVER);
+                send_message(socket_fd, error_CANNOT_DELIVER, bytes_to_write);
             }
             // Remove chat message from connection list
             remove_connection(connection_list_head_ref, connection);
@@ -283,7 +298,7 @@ int initialize_server(int PORT) {
                 if(FD_ISSET(socket, &temp_set)) {
                     // Store data appropriately and add client to
                     // client connection list if not already added
-                    // printf("Client is sending message:\n");
+                    printf("Client is sending message:\n");
                     receive_and_respond(socket, &connection_list_head, &master_set);
                 }
             }

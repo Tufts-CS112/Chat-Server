@@ -48,8 +48,8 @@ int main(int argc, char* argv[]) {
         scanf("%d", &command);
 
         switch(command){
+            // Send hello message 
             case 1:
-                // Send hello message 
                 message* hello_message = get_HELLO_message(argv[2]);
                 printf("Writing message to server...\n");
                 print_message(hello_message);
@@ -74,6 +74,7 @@ int main(int argc, char* argv[]) {
                 
                 break;
 
+            // Client list request
             case 3:
                 printf("Sending client list request\n");
                 message* list_request_message = get_LIST_REQUEST_message(argv[2]);  
@@ -90,6 +91,7 @@ int main(int argc, char* argv[]) {
                 print_message(message_response);
                 break;  
 
+            // Send message
             case 5:
                 char client_destination[20];
                 char message_content[400];
@@ -105,8 +107,8 @@ int main(int argc, char* argv[]) {
                 write_to_server(client_socket, (char*) CHAT_message, bytes_to_write);
                 break;
             
+            // Send EXIT message
             case 6:
-                // Send EXIT message
                 printf("Sending client EXIT message\n");
                 message* EXIT_message = get_EXIT_message(argv[2]);  
                 convert_message_to_network_byte_order(EXIT_message);
@@ -114,10 +116,9 @@ int main(int argc, char* argv[]) {
                 free(EXIT_message);  
                 break;
 
+            // Wait to receive message
             case 8:
-                // Send EXIT message
                 printf("Waiting to receive messages\n");
-                // message_response = malloc(sizeof(message));
                 while(1){
                     bytes_received = read(client_socket, message_response, sizeof(message));
                     printf("Received %d bytes from server\n", bytes_received);
