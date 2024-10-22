@@ -50,6 +50,23 @@ void write_to_client(int client_socket, char* buffer, int message_size) {
 // to client list. Parse data into messages and store appropriately
 void receive_and_respond(int socket_fd, connection_list** connection_list_head_ref, fd_set* master_FD_SET) {
 
+    // Receive client data
+    char* buffer = malloc(sizeof(message));
+    int bytes_received = recv(socket_fd, buffer, sizeof(message), 0);
+
+    // Check for client disconnection
+    if (bytes_received <= 0) {
+        // Error or connection closed by client
+        printf("Connection closed or error\n");
+        if(connection_present(connection_list_head_ref, socket_fd)) {
+            connection* connection = get_connection(connection_list_head_ref, socket_fd);
+            remove_connection(connection_list_head_ref, connection);
+        }
+        FD_CLR(socket_fd, master_FD_SET);
+        close(socket_fd);
+        return;
+    }
+
     // Add connection if not already present
     if(!connection_present(connection_list_head_ref, socket_fd)) {
         // Add connection
@@ -57,9 +74,6 @@ void receive_and_respond(int socket_fd, connection_list** connection_list_head_r
         add_connection(connection_list_head_ref, socket_fd);
     }
 
-    // Receive client data
-    char* buffer = malloc(sizeof(message));
-    int bytes_received = recv(socket_fd, buffer, sizeof(message), 0);
     printf("Bytes received: %d\n", bytes_received);
     connection* connection = get_connection(connection_list_head_ref, socket_fd);
 
