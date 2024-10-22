@@ -147,6 +147,7 @@ bool client_connected(char* client_id, connection_list** connection_list_head_re
 
 
 
+
 // Given head of connection list, free list
 void free_connection_list(connection_list* connection_list_head) {
     if(connection_list_head != NULL) {

@@ -53,6 +53,7 @@ void receive_and_respond(int socket_fd, connection_list** connection_list_head_r
     // Receive client data
     char* buffer = malloc(sizeof(message));
     int bytes_received = recv(socket_fd, buffer, sizeof(message), 0);
+    printf("Bytes received: %d\n", bytes_received);
 
     // Check for client disconnection
     if (bytes_received <= 0) {
@@ -74,7 +75,6 @@ void receive_and_respond(int socket_fd, connection_list** connection_list_head_r
         add_connection(connection_list_head_ref, socket_fd);
     }
 
-    printf("Bytes received: %d\n", bytes_received);
     connection* connection = get_connection(connection_list_head_ref, socket_fd);
 
     // Copy the connection bytes into messages, accounting for reception of partial
@@ -196,6 +196,7 @@ void server_response(int socket_fd, connection* connection, connection_list** co
 
             // Confirm that client has already sent hello messages
             if(client_connected(message->source, connection_list_head_ref)){
+                
                 printf("Found client connection\n");
                 // Remove list request from connection list
                 remove_connection(connection_list_head_ref, connection);
@@ -206,6 +207,7 @@ void server_response(int socket_fd, connection* connection, connection_list** co
                 free(message_CLIENT_LIST);
             } else {
                 // Close connection
+                printf("Cannot request client list before sending HELLO message. Closing connection\n");
                 remove_connection(connection_list_head_ref, connection);
                 FD_CLR(socket_fd, master_FD_SET);
                 close(socket_fd);
@@ -214,22 +216,32 @@ void server_response(int socket_fd, connection* connection, connection_list** co
 
         // Chat message
         case 5:
-            // Get socket fd associated with recipient
-            int recipient_socket_fd = get_socket(connection_list_head_ref, connection->message->destination);
-            if(recipient_socket_fd >= 0) {
-                // printf("Found socket file descriptor of recipient client: %d\n", recipient_socket_fd);
-                print_message(connection->message);
-                bytes_to_write = HEADER_SIZE+message->length;
-                convert_message_to_network_byte_order(connection->message);
-                send_message(recipient_socket_fd, connection->message, bytes_to_write);
+
+            // Error Handling - Self or no destination
+            if(strlen(message->destination) == 0 || strcmp(message->source, message->destination) == 0) {
+                printf("Improper chat request. Closing connection\n");
+                remove_connection(connection_list_head_ref, connection);
+                FD_CLR(socket_fd, master_FD_SET);
+                close(socket_fd);     
             } else {
-                struct message* error_CANNOT_DELIVER = get_CANNOT_DELIVER_error(message->source);
-                bytes_to_write = HEADER_SIZE+error_CANNOT_DELIVER->length;
-                convert_message_to_network_byte_order(error_CANNOT_DELIVER);
-                send_message(socket_fd, error_CANNOT_DELIVER, bytes_to_write);
+
+                // Get socket fd associated with recipient
+                int recipient_socket_fd = get_socket(connection_list_head_ref, connection->message->destination);
+                if(recipient_socket_fd >= 0) {
+                    printf("Found client connection\n");
+                    print_message(connection->message);
+                    bytes_to_write = HEADER_SIZE+message->length;
+                    convert_message_to_network_byte_order(connection->message);
+                    send_message(recipient_socket_fd, connection->message, bytes_to_write);
+                } else {
+                    printf("Sending error_CANNOT_DELIVER message: \n");
+                    struct message* error_CANNOT_DELIVER = get_CANNOT_DELIVER_error(message->source);
+                    bytes_to_write = HEADER_SIZE+error_CANNOT_DELIVER->length;
+                    convert_message_to_network_byte_order(error_CANNOT_DELIVER);
+                    send_message(socket_fd, error_CANNOT_DELIVER, bytes_to_write);
+                }
+                remove_connection(connection_list_head_ref, connection);
             }
-            // Remove chat message from connection list
-            remove_connection(connection_list_head_ref, connection);
             break;
 
         // Exit message
