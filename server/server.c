@@ -18,6 +18,7 @@
 #include <arpa/inet.h>
 #include <netdb.h>      // Provides hostent struct
 #include <sys/select.h> // Provides select() functionality
+#include <sys/time.h>
 #include <errno.h>      // Allows for printing of perror()
 
 
@@ -25,6 +26,7 @@
 // ----GLOBAL VARIABLES----------------------------------------------------------------------------
 #define MAX_CLIENT_CONNECTIONS 10
 #define HEADER_SIZE 50
+#define TIMEOUT 10 // Change
 
 //----FUNCTIONS------------------------------------------------------------------------------------
 // Max function (since max isn't in stdlib)
@@ -74,15 +76,16 @@ void receive_and_respond(int socket_fd, connection_list** connection_list_head_r
         printf("Adding new connection to connection list\n");
         add_connection(connection_list_head_ref, socket_fd);
     }
-
     connection* connection = get_connection(connection_list_head_ref, socket_fd);
+    printf("Address of connection: %p\n", connection);
+    // print_connection_list(connection_list_head_ref);
 
     // Copy the connection bytes into messages, accounting for reception of partial
     // messages and multiple messages within a single transmission
     int remaining_connection_bytes = bytes_received;
     int connection_bytes_copied = 0;
     int bytes_to_copy;
-    sleep(1);
+    // sleep(1);
 
     while(remaining_connection_bytes > 0) {
         // Copy bytes until header is filled, then convert to host-byte-order for readability
@@ -90,7 +93,9 @@ void receive_and_respond(int socket_fd, connection_list** connection_list_head_r
             int remaining_header_bytes = HEADER_SIZE - connection->data_stored;
             bytes_to_copy = (remaining_header_bytes > remaining_connection_bytes) ? remaining_connection_bytes : remaining_header_bytes;
             printf("Received %d bytes, copying %d bytes\n", remaining_connection_bytes, bytes_to_copy);
-            memcpy(connection->message + connection->data_stored, buffer+connection_bytes_copied, bytes_to_copy);
+            printf("Incrementing the address of the message being written to by size of data already stored: %d\n", connection->data_stored);
+            printf("Address to be copied to: %p. Incrementing by %d bytes to %p \n", connection->message, connection->data_stored, (char*) connection->message +connection->data_stored);
+            memcpy((char*) connection->message + connection->data_stored, buffer+connection_bytes_copied, bytes_to_copy);
             connection->data_stored += bytes_to_copy;
             remaining_connection_bytes -= bytes_to_copy;
             connection_bytes_copied += bytes_to_copy;
@@ -106,6 +111,7 @@ void receive_and_respond(int socket_fd, connection_list** connection_list_head_r
                                     (connection->data_stored == HEADER_SIZE + connection->message->length);
             if(message_complete) {
                 printf("Full message received. Printing message below. Server responding...\n");
+                connection->partial_message = false;
                 print_message(connection->message);
                 server_response(socket_fd, connection, connection_list_head_ref, master_FD_SET);
             }
@@ -128,6 +134,7 @@ void receive_and_respond(int socket_fd, connection_list** connection_list_head_r
                 if(HEADER_SIZE + connection->message->length == connection->data_stored) {
                     connection->message->data[connection->message->length] = '\0';
                     printf("Full message received. Printing message below. Server responding...\n");
+                    connection->partial_message = false;
                     print_message(connection->message);
                     server_response(socket_fd, connection, connection_list_head_ref, master_FD_SET);
                 }
@@ -142,6 +149,7 @@ void receive_and_respond(int socket_fd, connection_list** connection_list_head_r
             }
         }
     }
+    free(buffer);
 }
 
 void server_response(int socket_fd, connection* connection, connection_list** connection_list_head_ref, fd_set* master_FD_SET){
@@ -250,8 +258,6 @@ void server_response(int socket_fd, connection* connection, connection_list** co
                         send_message(socket_fd, error_CANNOT_DELIVER, bytes_to_write);
                     }
                     remove_connection(connection_list_head_ref, connection);
-                    printf("Printing connection list after removing chat request\n");
-                    print_connection_list(connection_list_head_ref);
                 }
             } else {
                 // Close connection
@@ -277,6 +283,34 @@ void server_response(int socket_fd, connection* connection, connection_list** co
     }
 }
 
+// Given pointer to timeval struct, set to the time remaining
+// until timeout of the connection closest to timeout. Otherwise, 
+// set to NULL
+struct timeval* get_timeout(connection_list** connection_list_head_ref) {
+    
+    // Iterate over connection list to find partial message closest to timeout
+    connection* connection_closest_to_timeout = get_closest_connection_to_timeout(connection_list_head_ref);
+    struct timeval* time_until_timeout = NULL;
+
+    if(connection_closest_to_timeout != NULL) {
+        time_until_timeout = malloc(sizeof(struct timeval));
+        struct timeval time_current;
+        struct timeval time_diff;
+        gettimeofday(&time_current, NULL);
+        timeval_diff(&connection_closest_to_timeout->time_added, &time_current, &time_diff);
+        // Set timeout
+        struct timeval timeout;
+        timeout.tv_sec = TIMEOUT;
+        timeout.tv_usec = 0;
+        timeval_diff(&time_diff, &timeout, time_until_timeout);
+        if(time_until_timeout->tv_sec < 0) {
+            time_until_timeout->tv_sec = 0;
+            time_until_timeout->tv_usec = 0;
+        }
+    } 
+    return time_until_timeout;    
+}
+
 
 
 int initialize_server(int PORT) {
@@ -284,6 +318,7 @@ int initialize_server(int PORT) {
     struct sockaddr_in client_addr, server_addr;
     socklen_t client_addr_size = sizeof(client_addr);
     char* buffer = malloc(sizeof(message));
+    struct timeval* time_until_timeout;
 
     // Create listening socket
     listening_socket = socket(AF_INET, SOCK_STREAM, 0);
@@ -336,27 +371,40 @@ int initialize_server(int PORT) {
         // set while select() modifies copy)
         temp_set = master_set;
 
-        // Block until a socket is ready
-        select(fdmax+1, &temp_set, NULL, NULL, NULL);
-
-        // If master socket is ready, a new client has requested
-        // connection. Accept new client and add to master set
-        if(FD_ISSET(listening_socket, &temp_set)){
-            client_socket = accept(listening_socket, (struct sockaddr *) &client_addr, &client_addr_size);
-            printf("\nNew client connection. Server socket: %d, IP: %s, Port: %d\n", 
-                    client_socket, inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
-
-            // Add new client to master set and update max file descriptor
-            FD_SET(client_socket, &master_set);
-            fdmax = max(client_socket, fdmax);
+        time_until_timeout = get_timeout(&connection_list_head);
+        if(time_until_timeout == NULL) {
+            printf("No time until timeout (ie no partial messages)\n");
         } else {
-            // If client is ready, receive data. Store and respond accordingly
-            for(int socket = 0; socket <= fdmax; socket++) {
-                if(FD_ISSET(socket, &temp_set)) {
-                    // Store data appropriately and add client to
-                    // client connection list if not already added
-                    printf("Client is sending message:\n");
-                    receive_and_respond(socket, &connection_list_head, &master_set);
+            printf("Time until timeout: %ld secs\n", time_until_timeout->tv_sec);
+        }
+        
+        // Block until a socket is ready
+        int activity = select(fdmax+1, &temp_set, NULL, NULL, time_until_timeout);
+
+        if(activity == 0) {
+            // Upon timeout, check for timed-out partial messages and remove
+            remove_timeouts(&connection_list_head, &master_set, TIMEOUT);
+
+        } else {
+            // If master socket is ready, a new client has requested
+            // connection. Accept new client and add to master set
+            if(FD_ISSET(listening_socket, &temp_set)){
+                client_socket = accept(listening_socket, (struct sockaddr *) &client_addr, &client_addr_size);
+                printf("\nNew client connection. Server socket: %d, IP: %s, Port: %d\n", 
+                        client_socket, inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+
+                // Add new client to master set and update max file descriptor
+                FD_SET(client_socket, &master_set);
+                fdmax = max(client_socket, fdmax);
+            } else {
+                // If client is ready, receive data. Store and respond accordingly
+                for(int socket = 0; socket <= fdmax; socket++) {
+                    if(FD_ISSET(socket, &temp_set)) {
+                        // Store data appropriately and add client to
+                        // client connection list if not already added
+                        printf("Client is sending message:\n");
+                        receive_and_respond(socket, &connection_list_head, &master_set);
+                    }
                 }
             }
         }

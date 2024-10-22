@@ -11,13 +11,17 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
+#include <sys/time.h>
+
 // ----GLOBAL VARIABLES----------------------------------------------------------------------------
 
 
 //----FUNCTIONS------------------------------------------------------------------------------------
 // Return connection object
 connection* create_connection(int client_socket_fd) {
-    connection* connection = malloc(sizeof(connection));
+    connection* connection = malloc(sizeof(struct connection));
+    gettimeofday(&(connection->time_added), NULL);
+    connection->partial_message = true;
     connection->client_socket_fd = client_socket_fd;
     connection->data_stored = 0;
     connection->message = malloc(sizeof(message));

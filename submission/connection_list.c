@@ -157,6 +157,7 @@ void print_connection_list(connection_list** connection_list_head_ref) {
         printf("----------------------------------------\n");
         printf("CONNECTION\n");
         printf("client_socket_fd: %d\n", connection_list_ref->connection->client_socket_fd);
+        printf("Partial Message: %s\n", connection_list_ref->connection->partial_message ? "True" : "False");
         printf("data stored: %d\n", connection_list_ref->connection->data_stored);
         printf("Message: \n");
         print_message(connection_list_ref->connection->message);

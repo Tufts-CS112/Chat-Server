@@ -34,7 +34,10 @@ void print_connection_list(connection_list** connection_list_head);
 bool duplicate_clients(connection_list** connection_list_head, char* client_ID);
 bool remove_connection(connection_list** connection_list_ref, connection* connection_to_remove);
 void free_connection_list(connection_list* connection_list_head);
-
+connection* get_closest_connection_to_timeout(connection_list** connection_list_head_ref);
+void remove_timeouts(connection_list** connection_list_head_ref, fd_set* master_FD_SET, int timeout);
+void timeval_diff(struct timeval *start, struct timeval *end, struct timeval *diff);
+bool timed_out(connection* connection, int timeout);
 
 #endif
 //-------------------------------------------------------------------------------------------------

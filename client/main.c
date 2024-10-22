@@ -126,6 +126,38 @@ int main(int argc, char* argv[]) {
                     print_message(message_response);
                 }  
                 break;
+
+            // Send timeout message
+            case 9:
+                int timeout;
+                printf("Timeout: \n");
+                scanf("%d", &timeout);
+
+                message* hello_message_timeout = get_HELLO_message(argv[2]);
+                printf("Writing message to server...\n");
+                print_message(hello_message_timeout);
+                convert_message_to_network_byte_order(hello_message_timeout);
+                write_to_server(client_socket, (char*) hello_message_timeout, 6);
+                sleep(timeout);
+                write_to_server(client_socket, (char*) hello_message_timeout + 6, HEADER_SIZE-6);
+                free(hello_message_timeout);
+
+
+                // Receive response from server
+                printf("Receiving message from server...\n");
+                // message_response = malloc(sizeof(message));
+                bytes_received = read(client_socket, message_response, sizeof(message));
+                printf("Received %d bytes from server\n", bytes_received);
+                convert_message_to_host_byte_order(message_response);
+                print_message(message_response);
+
+                // printf("Receiving message from server...\n");
+                // message_response_two = malloc(sizeof(message));
+                bytes_received = read(client_socket, message_response_two, sizeof(message));
+                printf("Received %d bytes from server\n", bytes_received);
+                convert_message_to_host_byte_order(message_response_two);
+                print_message(message_response_two);
+                break;
         }
     }
 

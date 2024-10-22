@@ -9,9 +9,11 @@
 #define CONNECTION_H
 
 #include "message.h"
-
+#include <stdbool.h>
 #include <stdlib.h>
 #include <netinet/in.h> // Provides sockaddr_in struct
+#include <stdio.h>
+#include <sys/time.h>
 
 // ----GLOBAL VARIABLES----------------------------------------------------------------------------
 #define MAX_IP_STRING_LENGTH 32
@@ -19,6 +21,8 @@
 // ----STRUCT--------------------------------------------------------------------------------------
 // Message struct with padding removed
 typedef struct connection{
+    struct timeval time_added;
+    bool partial_message;
     int client_socket_fd;
     int data_stored;
     struct message* message;

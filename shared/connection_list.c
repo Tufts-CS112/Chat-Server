@@ -10,6 +10,9 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <string.h>
+#include <unistd.h>
+#include <sys/time.h>
+
 
 // ----GLOBAL VARIABLES----------------------------------------------------------------------------
 
@@ -145,8 +148,83 @@ bool client_connected(char* client_id, connection_list** connection_list_head_re
     return false;
 }
 
+// Given two timeval structs, assign the difference to the third timeval struct
+void timeval_diff(struct timeval *start, struct timeval *end, struct timeval *diff) {
+    diff->tv_sec = end->tv_sec - start->tv_sec;
+    diff->tv_usec = end->tv_usec - start->tv_usec;
 
+    // If microseconds in the end time are less than start time, borrow from seconds
+    if (diff->tv_usec < 0) {
+        diff->tv_sec -= 1;
+        diff->tv_usec += 1000000;  // Add 1,000,000 microseconds (1 second) to adjust
+    }
+}
 
+// Given pointer to head of connection list, identify first timed-out partial 
+// message and remove
+void remove_timeouts(connection_list** connection_list_head_ref, fd_set* master_FD_SET, int timeout) {
+    // Iterate over connections checking for timed-out partial message
+    connection_list* connection_list_ref = *connection_list_head_ref;
+    while(connection_list_ref != NULL) {
+        if(connection_list_ref->connection->partial_message) {
+            if(timed_out(connection_list_ref->connection, timeout)){
+                printf("Found timed-out message. Removing...\n");
+                int socket_fd = connection_list_ref->connection->client_socket_fd;
+                // Remove partial message from connection list
+                remove_connection(connection_list_head_ref, connection_list_ref->connection);
+                // Remove client connection from connection list
+                connection* connection = get_connection(connection_list_head_ref, socket_fd);
+                remove_connection(connection_list_head_ref, connection);
+                // Remove from FD master set
+                FD_CLR(socket_fd, master_FD_SET);
+                close(socket_fd);
+                break;   
+            }
+        }
+        connection_list_ref = connection_list_ref->next;
+    }
+}
+
+bool timed_out(connection* connection, int timeout) {
+    struct timeval time_current;
+    struct timeval time_diff;
+    gettimeofday(&time_current, NULL);
+    timeval_diff(&connection->time_added, &time_current, &time_diff);
+    if(time_diff.tv_sec >= timeout) {
+        return true;
+    }
+    return false;
+}
+
+connection* get_closest_connection_to_timeout(connection_list** connection_list_head_ref) {
+    // Iterate over connections checking for partial message. Get partial message
+    // closest to timeout
+    struct timeval time_current;
+    struct timeval time_diff;
+    struct timeval closest_connection_to_timeout_time_diff;
+    gettimeofday(&time_current, NULL);
+    connection* closest_connection_to_timeout = NULL;
+
+    connection_list* connection_list_ref = *connection_list_head_ref;
+    while(connection_list_ref != NULL) {
+        if(connection_list_ref->connection->partial_message) {
+            timeval_diff(&connection_list_ref->connection->time_added, &time_current, &time_diff);
+            if(closest_connection_to_timeout == NULL) {
+                closest_connection_to_timeout = connection_list_ref->connection;
+                closest_connection_to_timeout_time_diff = time_diff;
+            } else {
+                if(time_diff.tv_sec > closest_connection_to_timeout_time_diff.tv_sec ||
+                   (time_diff.tv_sec == closest_connection_to_timeout_time_diff.tv_sec &&
+                    time_diff.tv_usec > closest_connection_to_timeout_time_diff.tv_usec)) {
+                        closest_connection_to_timeout = connection_list_ref->connection;
+                        closest_connection_to_timeout_time_diff = time_diff;   
+                    }
+            }
+        }
+        connection_list_ref = connection_list_ref->next;
+    }
+    return closest_connection_to_timeout;
+}
 
 // Given head of connection list, free list
 void free_connection_list(connection_list* connection_list_head) {
@@ -175,6 +253,7 @@ void print_connection_list(connection_list** connection_list_head_ref) {
         printf("----------------------------------------\n");
         printf("CONNECTION\n");
         printf("client_socket_fd: %d\n", connection_list_ref->connection->client_socket_fd);
+        printf("Partial Message: %s\n", connection_list_ref->connection->partial_message ? "True" : "False");
         printf("data stored: %d\n", connection_list_ref->connection->data_stored);
         printf("Message: \n");
         print_message(connection_list_ref->connection->message);
