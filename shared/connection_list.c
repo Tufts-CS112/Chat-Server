@@ -116,16 +116,33 @@ message* get_CLIENT_LIST_message(char* client_id, connection_list** connection_l
     connection_list* connection_list_ref = *connection_list_head_ref;
     int offset = 0;
     while(connection_list_ref != NULL) {
-        char* connection_client_id = connection_list_ref->connection->message->source;
-        strncpy(message_CLIENT_LIST->data + offset, connection_client_id, strlen(connection_client_id));
-        offset += strlen(connection_client_id);
-        message_CLIENT_LIST->data[offset] = '\0';
-        offset++;
+        if(connection_list_ref->connection->message->type==1) {
+            char* connection_client_id = connection_list_ref->connection->message->source;
+            strncpy(message_CLIENT_LIST->data + offset, connection_client_id, strlen(connection_client_id));
+            offset += strlen(connection_client_id);
+            message_CLIENT_LIST->data[offset] = '\0';
+            offset++;
+        }
         connection_list_ref = connection_list_ref->next;
     }
     message_CLIENT_LIST->length = offset;
 
     return message_CLIENT_LIST;
+}
+
+// Return true if client has sent HELLO message, else false
+bool client_connected(char* client_id, connection_list** connection_list_head_ref) {
+    // Iterate over connections checking for HELLO message from client
+    connection_list* connection_list_ref = *connection_list_head_ref;
+    while(connection_list_ref != NULL) {
+        if(connection_list_ref->connection->message->type==1) {
+            if(strncmp(connection_list_ref->connection->message->source, client_id, strlen(client_id)) == 0){
+                return true;
+            }
+        }
+        connection_list_ref = connection_list_ref->next;
+    }
+    return false;
 }
 
 

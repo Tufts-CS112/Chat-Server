@@ -193,12 +193,23 @@ void server_response(int socket_fd, connection* connection, connection_list** co
         // List request
         case 3:
             printf("Sending client list message\n");
-            remove_connection(connection_list_head_ref, connection);
-            struct message* message_CLIENT_LIST = get_CLIENT_LIST_message(message->source, connection_list_head_ref);
-            bytes_to_write = HEADER_SIZE+message_CLIENT_LIST->length;
-            convert_message_to_network_byte_order(message_CLIENT_LIST);
-            send_message(socket_fd, message_CLIENT_LIST, bytes_to_write);
-            free(message_CLIENT_LIST);
+
+            // Confirm that client has already sent hello messages
+            if(client_connected(message->source, connection_list_head_ref)){
+                printf("Found client connection\n");
+                // Remove list request from connection list
+                remove_connection(connection_list_head_ref, connection);
+                struct message* message_CLIENT_LIST = get_CLIENT_LIST_message(message->source, connection_list_head_ref);
+                bytes_to_write = HEADER_SIZE+message_CLIENT_LIST->length;
+                convert_message_to_network_byte_order(message_CLIENT_LIST);
+                send_message(socket_fd, message_CLIENT_LIST, bytes_to_write);
+                free(message_CLIENT_LIST);
+            } else {
+                // Close connection
+                remove_connection(connection_list_head_ref, connection);
+                FD_CLR(socket_fd, master_FD_SET);
+                close(socket_fd);
+            }
             break;
 
         // Chat message

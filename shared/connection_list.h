@@ -28,6 +28,7 @@ void add_connection_message(connection_list** connection_list_ref, int socket_fd
 connection* get_connection(connection_list** connection_list_head, int socket_fd);
 int get_socket(connection_list** connection_list_head, char* client_id);
 message* get_CLIENT_LIST_message(char* client_id, connection_list** connection_list_head);
+bool client_connected(char* client_id, connection_list** connection_list_head_ref);
 bool connection_present(connection_list** connection_list_head, int socket_fd);
 void print_connection_list(connection_list** connection_list_head);
 bool duplicate_clients(connection_list** connection_list_head, char* client_ID);
