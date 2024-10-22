@@ -26,7 +26,7 @@
 // ----GLOBAL VARIABLES----------------------------------------------------------------------------
 #define MAX_CLIENT_CONNECTIONS 10
 #define HEADER_SIZE 50
-#define TIMEOUT 10 // Change
+#define TIMEOUT 60 // Change
 
 //----FUNCTIONS------------------------------------------------------------------------------------
 // Max function (since max isn't in stdlib)
@@ -166,6 +166,7 @@ void server_response(int socket_fd, connection* connection, connection_list** co
                 struct message* message_HELLO_ACK = get_HELLO_ACK_message(message->source);
                 bytes_to_write = HEADER_SIZE+message_HELLO_ACK->length;
                 convert_message_to_network_byte_order(message_HELLO_ACK);
+                printf("Sending %d bytes\n", bytes_to_write);
                 send_message(socket_fd, message_HELLO_ACK, bytes_to_write);
                 free(message_HELLO_ACK);
 
@@ -173,7 +174,8 @@ void server_response(int socket_fd, connection* connection, connection_list** co
                 printf("Sending CLIENT_LIST:\n");
                 struct message* message_CLIENT_LIST = get_CLIENT_LIST_message(message->source, connection_list_head_ref);
                 bytes_to_write = HEADER_SIZE+message_CLIENT_LIST->length;
-                print_message(message_CLIENT_LIST);
+                // print_message(message_CLIENT_LIST);
+                printf("Sending %d bytes\n", bytes_to_write);
                 convert_message_to_network_byte_order(message_CLIENT_LIST);
                 send_message(socket_fd, message_CLIENT_LIST, bytes_to_write);
                 free(message_CLIENT_LIST);
@@ -188,9 +190,9 @@ void server_response(int socket_fd, connection* connection, connection_list** co
                 send_message(socket_fd, error_CLIENT_ALREADY_PRESENT, bytes_to_write);
                 // printf("Printing connection list before and after removal of duplicate connection\n");
                 // Remove from connection_list, close connection, and remove from master FD_SET
-                print_connection_list(connection_list_head_ref);
+                // print_connection_list(connection_list_head_ref);
                 remove_connection(connection_list_head_ref, connection);
-                print_connection_list(connection_list_head_ref);
+                // print_connection_list(connection_list_head_ref);
                 // printf("Closing server socket associated with connection to client with duplicate client_id: %d\n", socket_fd);
                 close(socket_fd);
                 FD_CLR(socket_fd, master_FD_SET);
