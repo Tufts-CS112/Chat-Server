@@ -6,4 +6,3 @@
 tests/*
 client/.vscode/*
 submission/
-Makefile
