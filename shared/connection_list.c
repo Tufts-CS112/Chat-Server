@@ -6,6 +6,7 @@
 //              connections
 //*************************************************************************************************
 #include "connection_list.h"
+
 #include <netinet/in.h> // Provides sockaddr_in struct
 #include <stdbool.h>
 #include <stdio.h>

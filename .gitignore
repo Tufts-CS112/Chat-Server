@@ -5,4 +5,5 @@
 .vscode/*
 tests/*
 client/.vscode/*
+submission/
 Makefile
